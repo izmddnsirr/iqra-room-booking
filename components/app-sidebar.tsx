@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -13,15 +12,11 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import type { Role } from "@/lib/auth"
 import { LayoutDashboardIcon, CalendarCheckIcon, DoorOpenIcon, UsersIcon, CalendarPlusIcon, ListChecksIcon, InfoIcon, LayoutGridIcon, HourglassIcon, KeyRoundIcon, HistoryIcon, ClockIcon, SettingsIcon } from "lucide-react"
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   team: {
     name: "Iqra Room",
     logo: (
@@ -41,13 +36,11 @@ const data = {
       title: "All Bookings",
       url: "/admin/bookings",
       icon: <CalendarCheckIcon />,
-      badge: 12,
     },
     {
       title: "Pending Approvals",
       url: "/admin/pending-approvals",
       icon: <ClockIcon />,
-      badge: 4,
     },
   ],
   adminNavManagement: [
@@ -105,13 +98,11 @@ const data = {
       title: "In Process",
       url: "/receptionist/in-process",
       icon: <HourglassIcon />,
-      badge: 3,
     },
     {
       title: "Ready for Collection",
       url: "/receptionist/ready-collection",
       icon: <KeyRoundIcon />,
-      badge: 2,
     },
   ],
   receptionistNavOther: [
@@ -123,34 +114,65 @@ const data = {
   ],
 }
 
-function getRoleLabel(pathname: string) {
-  if (pathname.startsWith("/admin")) return "Admin"
-  if (pathname.startsWith("/receptionist")) return "Receptionist"
-  return "User"
+const ROLE_LABELS: Record<Role, string> = {
+  admin: "Admin",
+  receptionist: "Receptionist",
+  user: "User",
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
-  const isAdmin = pathname.startsWith("/admin")
-  const isReceptionist = pathname.startsWith("/receptionist")
+export function AppSidebar({
+  user,
+  notificationCount,
+  allBookingsCount,
+  pendingApprovalsCount,
+  inProcessCount,
+  readyForCollectionCount,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: { name: string; email: string; role: Role }
+  notificationCount?: number
+  allBookingsCount?: number
+  pendingApprovalsCount?: number
+  inProcessCount?: number
+  readyForCollectionCount?: number
+}) {
+  const adminNavBookings = data.adminNavBookings.map((item) => ({
+    ...item,
+    badge:
+      item.url === "/admin/bookings"
+        ? allBookingsCount || undefined
+        : item.url === "/admin/pending-approvals"
+          ? pendingApprovalsCount || undefined
+          : undefined,
+  }))
+
+  const receptionistNavBookings = data.receptionistNavBookings.map((item) => ({
+    ...item,
+    badge:
+      item.url === "/receptionist/in-process"
+        ? inProcessCount || undefined
+        : item.url === "/receptionist/ready-collection"
+          ? readyForCollectionCount || undefined
+          : undefined,
+  }))
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher team={data.team} plan={getRoleLabel(pathname)} />
+        <TeamSwitcher team={data.team} plan={ROLE_LABELS[user.role]} />
       </SidebarHeader>
       <SidebarContent>
-        {isAdmin ? (
+        {user.role === "admin" ? (
           <>
             <NavMain label="Main" items={data.adminNavMain} />
-            <NavMain label="Bookings" items={data.adminNavBookings} />
+            <NavMain label="Bookings" items={adminNavBookings} />
             <NavMain label="Management" items={data.adminNavManagement} />
             <NavMain label="System" items={data.adminNavSystem} />
           </>
-        ) : isReceptionist ? (
+        ) : user.role === "receptionist" ? (
           <>
             <NavMain label="Main" items={data.receptionistNavMain} />
-            <NavMain label="Bookings" items={data.receptionistNavBookings} />
+            <NavMain label="Bookings" items={receptionistNavBookings} />
             <NavMain label="Other" items={data.receptionistNavOther} />
           </>
         ) : (
@@ -161,7 +183,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={{ name: user.name, email: user.email, avatar: "" }} notificationCount={notificationCount} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

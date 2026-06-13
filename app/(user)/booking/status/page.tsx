@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,48 +9,60 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { BookingsTable, type Booking } from "@/app/(user)/dashboard/bookings-table";
+import { createClient } from "@/lib/supabase/server";
+import { MyBookingsTable, type MyBooking } from "./my-bookings-table";
+import type { BookingStatus } from "@/lib/bookings/types";
 
 export const metadata: Metadata = {
   title: "Booking Status",
 };
 
-const bookings: Booking[] = [
-  { id: "BK-001", room: "Discussion Room A", date: "10 Jun 2026", time: "09:00 – 11:00", status: "Approved" },
-  { id: "BK-002", room: "Seminar Hall 1", date: "11 Jun 2026", time: "14:00 – 16:00", status: "Pending" },
-  { id: "BK-003", room: "Meeting Room B", date: "13 Jun 2026", time: "10:00 – 12:00", status: "Approved" },
-  { id: "BK-004", room: "Discussion Room C", date: "15 Jun 2026", time: "08:00 – 09:00", status: "Pending" },
-  { id: "BK-005", room: "Seminar Hall 2", date: "18 Jun 2026", time: "13:00 – 15:00", status: "Rejected" },
-];
+export default async function BookingStatusPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-export default function BookingStatusPage() {
+  const { data: bookings } = await supabase
+    .from("bookings")
+    .select("id, start_date, end_date, total_amount, status, rooms(room_number, floor)")
+    .eq("user_id", user!.id)
+    .order("created_at", { ascending: false });
+
+  const data: MyBooking[] = (bookings ?? []).map((booking) => {
+    const room = booking.rooms as unknown as { room_number: string; floor: string } | null;
+    return {
+      id: booking.id,
+      room: room?.room_number ?? "—",
+      floor: room?.floor ?? "—",
+      startDate: booking.start_date,
+      endDate: booking.end_date,
+      totalAmount: Number(booking.total_amount),
+      status: booking.status as BookingStatus,
+    };
+  });
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Booking Status</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <BookingsTable data={bookings} title="My Bookings" />
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Booking Status</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </header>
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <MyBookingsTable data={data} />
+      </div>
+    </SidebarInset>
   );
 }

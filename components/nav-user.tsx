@@ -1,5 +1,6 @@
 "use client"
 
+import { logout } from "@/app/(auth)/actions"
 import {
   Avatar,
   AvatarFallback,
@@ -24,12 +25,14 @@ import { ChevronsUpDownIcon, BadgeCheckIcon, BellIcon, LogOutIcon } from "lucide
 
 export function NavUser({
   user,
+  notificationCount = 0,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
+  notificationCount?: number
 }) {
   const { isMobile } = useSidebar()
 
@@ -43,7 +46,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -82,10 +85,15 @@ export function NavUser({
                 <BellIcon
                 />
                 Notifications
+                {notificationCount > 0 && (
+                  <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-green-600 text-xs font-medium text-white">
+                    {notificationCount}
+                  </span>
+                )}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOutIcon
               />
               Log out

@@ -1,30 +1,45 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowRightIcon, HourglassIcon, CheckCircleIcon, CircleIcon } from "lucide-react"
+import { ArrowRightIcon, HourglassIcon, CheckCircleIcon, CircleIcon, ClockIcon, XCircleIcon } from "lucide-react"
 import Link from "next/link"
 
 import { DataTable } from "@/components/ui/data-table"
-
-export type RecentBookingStatus = "In Process" | "Ready for Collection" | "Completed"
+import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
 
 export type RecentBooking = {
   room: string
   duration: string
-  status: RecentBookingStatus
+  status: BookingStatus
 }
 
-const statusConfig: Record<RecentBookingStatus, { icon: React.ReactNode; className: string }> = {
-  "In Process": {
-    icon: <HourglassIcon className="size-3" />,
-    className: "inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700",
+const statusConfig: Record<BookingStatus, { icon: React.ReactNode; className: string }> = {
+  pending: {
+    icon: <ClockIcon className="size-3" />,
+    className: "inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground",
   },
-  "Ready for Collection": {
+  approved: {
+    icon: <CheckCircleIcon className="size-3" />,
+    className: "inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700",
+  },
+  rejected: {
+    icon: <XCircleIcon className="size-3" />,
+    className: "inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700",
+  },
+  ready_for_collection: {
     icon: <CheckCircleIcon className="size-3" />,
     className: "inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700",
   },
-  "Completed": {
+  in_process: {
+    icon: <HourglassIcon className="size-3" />,
+    className: "inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700",
+  },
+  completed: {
     icon: <CircleIcon className="size-3" />,
+    className: "inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground",
+  },
+  cancelled: {
+    icon: <XCircleIcon className="size-3" />,
     className: "inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground",
   },
 }
@@ -44,12 +59,12 @@ const columns: ColumnDef<RecentBooking>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status") as RecentBookingStatus
+      const status = row.getValue("status") as BookingStatus
       const config = statusConfig[status]
       return (
         <span className={config.className}>
           {config.icon}
-          {status}
+          {BOOKING_STATUS_LABELS[status]}
         </span>
       )
     },

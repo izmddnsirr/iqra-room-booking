@@ -4,15 +4,11 @@ import {
   CalendarPlusIcon,
   ListChecksIcon,
   ArrowRightIcon,
-  CalendarIcon,
-  CircleDollarSignIcon,
-  BuildingIcon,
-  KeyRoundIcon,
+  KeyIcon,
+  DoorOpenIcon,
 } from "lucide-react";
 import Link from "next/link";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,14 +16,15 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { RecentBookingsTable, type RecentBooking } from "./recent-bookings-table";
 import {
   SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/supabase/server";
+import type { BookingStatus } from "@/lib/bookings/types";
+import { formatBookingPeriod } from "@/lib/bookings/format";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -48,25 +45,48 @@ const quickActions = [
   },
 ];
 
-const recentBookings: RecentBooking[] = [
-  { room: "Iqra 101", duration: "1 Aug – 1 Nov 2026 · 3 months", status: "In Process" },
-  { room: "Iqra 203", duration: "1 Feb – 1 Apr 2026 · 2 months", status: "Ready for Collection" },
-  { room: "Iqra 401", duration: "1 Sep – 1 Dec 2025 · 3 months", status: "Completed" },
-];
+export default async function UserDashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-const roomRules = [
-  { icon: <CalendarIcon className="size-4 shrink-0 text-primary" />, text: "Rental period: minimum 1 month, maximum 3 months" },
-  { icon: <CircleDollarSignIcon className="size-4 shrink-0 text-primary" />, text: "Payment: RM30 per month — credited to SMAP" },
-  { icon: <BuildingIcon className="size-4 shrink-0 text-primary" />, text: "Rooms available on Level 2 and Level 4 only" },
-  { icon: <KeyRoundIcon className="size-4 shrink-0 text-primary" />, text: "Key collected at counter after receptionist confirmation" },
-];
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user!.id)
+    .single();
 
+  const { data: bookings } = await supabase
+    .from("bookings")
+    .select("start_date, end_date, rental_months, status, rooms(room_number, floor)")
+    .eq("user_id", user!.id)
+    .order("created_at", { ascending: false })
+    .limit(5);
 
-export default function UserDashboardPage() {
+  const recentBookings: RecentBooking[] = (bookings ?? []).map((booking) => {
+    const room = booking.rooms as unknown as { room_number: string; floor: string } | null;
+    return {
+      room: room?.room_number ?? "—",
+      duration: `${formatBookingPeriod(booking.start_date, booking.end_date)} · ${booking.rental_months} month${booking.rental_months > 1 ? "s" : ""}`,
+      status: booking.status as BookingStatus,
+    };
+  });
+
+  const currentBooking = (bookings ?? []).find((b) => b.status === "in_process");
+  const currentRoom = currentBooking?.rooms as unknown as { room_number: string; floor: string } | null;
+
+  const { data: readyBookings } = await supabase
+    .from("bookings")
+    .select("rooms(room_number)")
+    .eq("user_id", user!.id)
+    .eq("status", "ready_for_collection");
+
+  const readyRooms = (readyBookings ?? []).map((booking) => {
+    const room = booking.rooms as unknown as { room_number: string } | null;
+    return room?.room_number ?? "—";
+  });
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
+    <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
@@ -80,16 +100,27 @@ export default function UserDashboardPage() {
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-6 p-6 pt-0">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 
           {/* Welcome */}
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-xl font-bold">Welcome, Izamuddin 👋</h1>
-              <p className="text-sm text-muted-foreground mt-1">You have 1 active booking</p>
-            </div>
-            <Badge variant="secondary" className="mt-1">UTHM User</Badge>
+          <div>
+            <h1 className="text-xl font-bold">Welcome, {profile?.full_name ?? "User"}</h1>
           </div>
+
+          {/* Ready for Collection Banner */}
+          {readyRooms.length > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950">
+              <KeyIcon className="size-5 shrink-0 text-green-600 dark:text-green-400" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                  Your key{readyRooms.length > 1 ? "s are" : " is"} ready for collection!
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-400">
+                  {readyRooms.join(", ")} — collect at the counter.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-3">
@@ -111,37 +142,25 @@ export default function UserDashboardPage() {
             ))}
           </div>
 
-          {/* Recent Bookings */}
-          <RecentBookingsTable data={recentBookings} />
-
-          {/* Room Rules */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-semibold">Iqra Room Rules</h2>
-            <div className="rounded-xl border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Rule</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {roomRules.map((rule, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {rule.icon}
-                          {rule.text}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          {/* Your Room */}
+          <div className="flex items-center gap-3 rounded-xl border px-4 py-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <DoorOpenIcon className="size-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">Your room</p>
+              <p className="text-xs text-muted-foreground">
+                {currentBooking && currentRoom
+                  ? `${currentRoom.room_number} (${currentRoom.floor}) · ${formatBookingPeriod(currentBooking.start_date, currentBooking.end_date)}`
+                  : "No active room"}
+              </p>
             </div>
           </div>
 
+          {/* Recent Bookings */}
+          <RecentBookingsTable data={recentBookings} />
+
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+    </SidebarInset>
   );
 }

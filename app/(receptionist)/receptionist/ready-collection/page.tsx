@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,44 +9,66 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/supabase/server";
+import { markCollected, markReadyForCollection } from "@/lib/bookings/actions";
+import { BookingQueueTable } from "../booking-queue-table";
+import { BOOKING_QUEUE_SELECT, mapQueueBookings } from "../booking-queue-mapper";
 
 export const metadata: Metadata = {
   title: "Ready for Collection",
 };
 
-export default function ReadyCollectionPage() {
+export default async function ReadyCollectionPage() {
+  const supabase = await createClient();
+
+  const { data: approved } = await supabase
+    .from("bookings")
+    .select(BOOKING_QUEUE_SELECT)
+    .eq("status", "approved")
+    .order("created_at", { ascending: true });
+
+  const { data: readyForCollection } = await supabase
+    .from("bookings")
+    .select(BOOKING_QUEUE_SELECT)
+    .eq("status", "ready_for_collection")
+    .order("created_at", { ascending: true });
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Ready for Collection</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-screen flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+          />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbPage>Ready for Collection</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </header>
+      <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Awaiting Key Preparation</h2>
+          <BookingQueueTable
+            bookings={mapQueueBookings(approved)}
+            action={{ label: "Mark Ready", onAction: markReadyForCollection }}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Ready for Collection</h2>
+          <BookingQueueTable
+            bookings={mapQueueBookings(readyForCollection)}
+            action={{ label: "Hand Over Key", onAction: markCollected }}
+          />
+        </div>
+      </div>
+    </SidebarInset>
   );
 }
