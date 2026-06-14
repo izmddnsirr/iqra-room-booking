@@ -13,7 +13,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import type { Role } from "@/lib/auth"
-import { LayoutDashboardIcon, CalendarCheckIcon, DoorOpenIcon, UsersIcon, CalendarPlusIcon, ListChecksIcon, InfoIcon, LayoutGridIcon, HourglassIcon, KeyRoundIcon, HistoryIcon, SettingsIcon } from "lucide-react"
+import { LayoutDashboardIcon, CalendarCheckIcon, DoorOpenIcon, UsersIcon, CalendarPlusIcon, ListChecksIcon, InfoIcon, LayoutGridIcon, HourglassIcon, KeyRoundIcon, HistoryIcon } from "lucide-react"
 
 // This is sample data.
 const data = {
@@ -48,13 +48,6 @@ const data = {
       title: "Manage Users",
       url: "/admin/users",
       icon: <UsersIcon />,
-    },
-  ],
-  adminNavSystem: [
-    {
-      title: "Settings",
-      url: "/admin/settings",
-      icon: <SettingsIcon />,
     },
   ],
   userNavMain: [
@@ -117,14 +110,12 @@ const ROLE_LABELS: Record<Role, string> = {
 
 export function AppSidebar({
   user,
-  notificationCount,
   allBookingsCount,
   inProcessCount,
   readyForCollectionCount,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: { name: string; email: string; role: Role }
-  notificationCount?: number
   allBookingsCount?: number
   inProcessCount?: number
   readyForCollectionCount?: number
@@ -182,7 +173,6 @@ export function AppSidebar({
               <NavMain label="Main" items={data.adminNavMain} />
               <NavMain label="Bookings" items={adminNavBookings} />
               <NavMain label="Management" items={data.adminNavManagement} />
-              <NavMain label="System" items={data.adminNavSystem} />
             </>
           ) : user.role === "receptionist" ? (
             <>
@@ -198,7 +188,7 @@ export function AppSidebar({
           )}
         </SidebarContent>
         <SidebarFooter>
-          <NavUser user={{ name: user.name, email: user.email, avatar: "" }} notificationCount={notificationCount} />
+          <NavUser user={{ name: user.name, email: user.email, avatar: "" }} />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>

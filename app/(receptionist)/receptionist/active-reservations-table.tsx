@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
+import { useTransition } from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { SearchIcon } from "lucide-react"
+import { AlertTriangleIcon, KeyRoundIcon, SearchIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import {
@@ -18,15 +20,44 @@ import { formatBookingPeriod } from "@/lib/bookings/format"
 import { markCompleted, markMissing } from "@/lib/bookings/actions"
 import { KEY_STATUS_COLORS } from "@/lib/bookings/types"
 import { ApplicantCell } from "./applicant-cell"
-import { BookingActionSelect, type BookingAction } from "./booking-action-select"
 import type { QueueBooking } from "./booking-queue-mapper"
 
 export type ActiveReservation = QueueBooking & { isOverdue: boolean }
 
-const updateActions: BookingAction[] = [
-  { value: "returned", label: "Mark Returned", onAction: markCompleted },
-  { value: "missing", label: "Mark Missing", onAction: markMissing },
-]
+function RowActions({ bookingId }: { bookingId: string }) {
+  const [isPending, startTransition] = useTransition()
+
+  return (
+    <div className="flex justify-end gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={isPending}
+        onClick={() =>
+          startTransition(async () => {
+            await markCompleted(bookingId)
+          })
+        }
+      >
+        <KeyRoundIcon className="size-4" />
+        Mark Returned
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={isPending}
+        onClick={() =>
+          startTransition(async () => {
+            await markMissing(bookingId)
+          })
+        }
+      >
+        <AlertTriangleIcon className="size-4" />
+        Mark Missing
+      </Button>
+    </div>
+  )
+}
 
 const columns: ColumnDef<ActiveReservation>[] = [
   {
@@ -65,8 +96,9 @@ const columns: ColumnDef<ActiveReservation>[] = [
   {
     id: "action",
     header: "Action",
-    size: 180,
-    cell: ({ row }) => <BookingActionSelect bookingId={row.original.id} actions={updateActions} placeholder="Update..." />,
+    size: 280,
+    meta: { className: "text-right" },
+    cell: ({ row }) => <RowActions bookingId={row.original.id} />,
   },
 ]
 

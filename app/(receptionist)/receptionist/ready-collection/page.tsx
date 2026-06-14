@@ -25,7 +25,7 @@ export default async function BookingsPage() {
   const { data: bookings } = await supabase
     .from("bookings")
     .select(BOOKING_QUEUE_SELECT)
-    .in("status", ["approved", "ready_for_collection"])
+    .in("status", ["approved", "key_prepared", "ready_for_collection"])
     .order("created_at", { ascending: true });
 
   return (

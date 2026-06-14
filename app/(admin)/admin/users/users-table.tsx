@@ -6,6 +6,13 @@ import { SearchIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -37,8 +44,11 @@ export function UsersTable({
   createUserSlot: React.ReactNode
 }) {
   const [search, setSearch] = useState("")
+  const [role, setRole] = useState("all")
 
   const filteredProfiles = profiles.filter((profile) => {
+    if (role !== "all" && profile.role !== role) return false
+
     const query = search.trim().toLowerCase()
     if (!query) return true
     return (
@@ -51,8 +61,8 @@ export function UsersTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative max-w-sm">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by name, email, ID, or phone..."
@@ -61,7 +71,20 @@ export function UsersTable({
             className="pl-9"
           />
         </div>
-        {createUserSlot}
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {createUserSlot}
+        </div>
       </div>
       <div className="rounded-xl border">
         <Table>

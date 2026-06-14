@@ -45,6 +45,10 @@ export default async function AdminUsersPage() {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div>
+          <h1 className="text-lg font-semibold">Manage Users</h1>
+          <p className="text-sm text-muted-foreground">View and manage user accounts.</p>
+        </div>
         <UsersTable profiles={profiles ?? []} createUserSlot={<CreateUserSheet />} />
       </div>
     </SidebarInset>

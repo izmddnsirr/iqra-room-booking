@@ -8,6 +8,10 @@ import {
   bookingApprovedEmail,
   bookingReadyForCollectionEmail,
   bookingCompletedEmail,
+  bookingMarkedMissingEmail,
+  bookingPenaltyChargedEmail,
+  bookingWarningEmail,
+  bookingForceCancelledEmail,
 } from '@/lib/email/templates'
 import type { BookingStatus } from './types'
 
@@ -53,7 +57,7 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
 
   const { supabase, userId } = ctx
 
-  const activeStatuses: BookingStatus[] = ['pending', 'approved', 'ready_for_collection', 'in_process']
+  const activeStatuses: BookingStatus[] = ['pending', 'approved', 'key_prepared', 'ready_for_collection', 'in_process']
 
   const { data: ownActiveBookings } = await supabase
     .from('bookings')
@@ -227,6 +231,12 @@ async function setBookingStatus(
   return { success: true }
 }
 
+export async function markKeyPrepared(bookingId: string) {
+  return setBookingStatus(bookingId, 'key_prepared', ['admin', 'receptionist'], [
+    '/dashboard', '/admin', '/admin/bookings', '/receptionist', '/receptionist/ready-collection',
+  ])
+}
+
 export async function markReadyForCollection(bookingId: string) {
   return setBookingStatus(bookingId, 'ready_for_collection', ['admin', 'receptionist'], [
     '/dashboard', '/admin', '/admin/bookings', '/receptionist/ready-collection',
@@ -254,7 +264,10 @@ export async function markCompleted(bookingId: string) {
 export async function markMissing(bookingId: string) {
   return setBookingStatus(bookingId, 'missing', ['admin', 'receptionist'], [
     '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/in-process', '/receptionist/key-history',
-  ])
+  ], (details) => ({
+    subject: 'Access Card Marked as Lost - Iqra Room',
+    html: bookingMarkedMissingEmail(details),
+  }))
 }
 
 export async function markFound(bookingId: string) {
@@ -289,6 +302,114 @@ export async function chargePenalty(bookingId: string, amount: number = ACCESS_C
     .eq('id', bookingId)
 
   if (error) return { error: error.message }
+
+  const { data: bookingDetails } = await supabase
+    .from('bookings')
+    .select('profiles(email, full_name), rooms(room_number)')
+    .eq('id', bookingId)
+    .single()
+
+  if (bookingDetails) {
+    const profile = bookingDetails.profiles as unknown as { email: string; full_name: string } | null
+    const room = bookingDetails.rooms as unknown as { room_number: string } | null
+
+    if (profile?.email) {
+      await sendEmail({
+        to: profile.email,
+        subject: 'Penalty Charged - Iqra Room',
+        html: bookingPenaltyChargedEmail({
+          fullName: profile.full_name,
+          roomNumber: room?.room_number ?? '—',
+          amount,
+        }),
+      })
+    }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/admin')
+  revalidatePath('/admin/bookings')
+  revalidatePath('/receptionist/in-process')
+  revalidatePath('/receptionist/key-history')
+  return { success: true }
+}
+
+export async function issueWarning(bookingId: string, message: string) {
+  const ctx = await getProfileRole()
+  if (!ctx) return { error: 'You must be logged in.' }
+  if (!['admin', 'receptionist'].includes(ctx.role)) return { error: 'Not authorized.' }
+  if (!message.trim()) return { error: 'Warning message is required.' }
+
+  const { supabase, userId } = ctx
+
+  const { error } = await supabase
+    .from('booking_warnings')
+    .insert({ booking_id: bookingId, message: message.trim(), created_by: userId })
+
+  if (error) return { error: error.message }
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('profiles(email, full_name), rooms(room_number)')
+    .eq('id', bookingId)
+    .single()
+
+  if (booking) {
+    const profile = booking.profiles as unknown as { email: string; full_name: string } | null
+    const room = booking.rooms as unknown as { room_number: string } | null
+
+    if (profile?.email) {
+      await sendEmail({
+        to: profile.email,
+        subject: 'Warning Notice - Iqra Room',
+        html: bookingWarningEmail({
+          fullName: profile.full_name,
+          roomNumber: room?.room_number ?? '—',
+          message: message.trim(),
+        }),
+      })
+    }
+  }
+
+  revalidatePath('/admin/bookings')
+  return { success: true }
+}
+
+export async function forceCancelBooking(bookingId: string) {
+  const ctx = await getProfileRole()
+  if (!ctx) return { error: 'You must be logged in.' }
+  if (ctx.role !== 'admin') return { error: 'Not authorized.' }
+
+  const { supabase } = ctx
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('profiles(email, full_name), rooms(room_number)')
+    .eq('id', bookingId)
+    .single()
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('id', bookingId)
+
+  if (error) return { error: error.message }
+
+  if (booking) {
+    const profile = booking.profiles as unknown as { email: string; full_name: string } | null
+    const room = booking.rooms as unknown as { room_number: string } | null
+
+    if (profile?.email) {
+      await sendEmail({
+        to: profile.email,
+        subject: 'Rental Cancelled - Iqra Room',
+        html: bookingForceCancelledEmail({
+          fullName: profile.full_name,
+          roomNumber: room?.room_number ?? '—',
+        }),
+      })
+    }
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/admin/bookings')

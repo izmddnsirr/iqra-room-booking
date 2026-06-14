@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { KeyRoundIcon } from "lucide-react"
+import { AlertTriangleIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,15 +13,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { markKeyPrepared, markReadyForCollection } from "@/lib/bookings/actions"
+import { chargePenalty } from "@/lib/bookings/actions"
 import { formatBookingPeriod } from "@/lib/bookings/format"
-import { KEY_STATUS_COLORS, KEY_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
-import type { AdminBooking } from "./bookings/all-bookings-table"
+import { KEY_STATUS_COLORS } from "@/lib/bookings/types"
+import type { QueueBooking } from "../../(receptionist)/receptionist/booking-queue-mapper"
 
-export function PendingPrepTable({ bookings }: { bookings: AdminBooking[] }) {
+const ACCESS_CARD_PENALTY = 50
+
+export function OverdueMissingTable({ bookings }: { bookings: (QueueBooking & { isOverdue: boolean })[] }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold">Pending to Prepare</h2>
+      <h2 className="text-sm font-semibold">Overdue &amp; Missing</h2>
       <div className="rounded-xl border">
         <Table className="table-fixed">
           <TableHeader>
@@ -44,19 +46,21 @@ export function PendingPrepTable({ bookings }: { bookings: AdminBooking[] }) {
                 <TableCell>{formatBookingPeriod(booking.startDate, booking.endDate)}</TableCell>
                 <TableCell>RM {booking.totalAmount.toFixed(2)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={KEY_STATUS_COLORS[booking.status]}>
-                    {KEY_STATUS_LABELS[booking.status]}
-                  </Badge>
+                  {booking.status === "missing" ? (
+                    <Badge variant="outline" className={KEY_STATUS_COLORS.missing}>Missing</Badge>
+                  ) : (
+                    <Badge variant="outline" className={KEY_STATUS_COLORS.overdue}>Overdue</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <RowActions bookingId={booking.id} status={booking.status} />
+                  <ChargePenaltyButton booking={booking} />
                 </TableCell>
               </TableRow>
             ))}
             {bookings.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No bookings pending preparation.
+                  No overdue or missing bookings.
                 </TableCell>
               </TableRow>
             )}
@@ -67,23 +71,22 @@ export function PendingPrepTable({ bookings }: { bookings: AdminBooking[] }) {
   )
 }
 
-function RowActions({ bookingId, status }: { bookingId: string; status: BookingStatus }) {
+function ChargePenaltyButton({ booking }: { booking: QueueBooking & { isOverdue: boolean } }) {
   const [isPending, startTransition] = useTransition()
 
-  if (status === "key_prepared") {
+  if (booking.status !== "missing") {
     return (
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={isPending}
-        onClick={() =>
-          startTransition(async () => {
-            await markReadyForCollection(bookingId)
-          })
-        }
-      >
-        <KeyRoundIcon className="size-4" />
-        Mark Ready for Pickup
+      <Button size="sm" variant="outline" disabled>
+        <AlertTriangleIcon className="size-4" />
+        Charge Penalty
+      </Button>
+    )
+  }
+
+  if (booking.penaltyChargedAt) {
+    return (
+      <Button size="sm" variant="outline" disabled>
+        Penalty Charged
       </Button>
     )
   }
@@ -95,12 +98,12 @@ function RowActions({ bookingId, status }: { bookingId: string; status: BookingS
       disabled={isPending}
       onClick={() =>
         startTransition(async () => {
-          await markKeyPrepared(bookingId)
+          await chargePenalty(booking.id)
         })
       }
     >
-      <KeyRoundIcon className="size-4" />
-      Mark Key Prepared
+      <AlertTriangleIcon className="size-4" />
+      Charge Penalty (RM{ACCESS_CARD_PENALTY})
     </Button>
   )
 }

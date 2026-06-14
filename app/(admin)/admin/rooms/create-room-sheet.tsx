@@ -47,19 +47,21 @@ export function CreateRoomSheet() {
             Add a new room. Notes and availability can be managed afterward.
           </SheetDescription>
         </SheetHeader>
-        <form action={formAction} className="px-4">
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="room_number">Room Number</FieldLabel>
-              <Input id="room_number" name="room_number" placeholder="Iqra 101" required />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="floor">Floor</FieldLabel>
-              <Input id="floor" name="floor" placeholder="Level 2" required />
-            </Field>
-            {state?.error && <FieldError>{state.error}</FieldError>}
-          </FieldGroup>
-          <SheetFooter className="px-0">
+        <form action={formAction} className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4">
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="room_number">Room Number</FieldLabel>
+                <Input id="room_number" name="room_number" placeholder="Iqra 101" required />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="floor">Floor</FieldLabel>
+                <Input id="floor" name="floor" placeholder="Level 2" required />
+              </Field>
+              {state?.error && <FieldError>{state.error}</FieldError>}
+            </FieldGroup>
+          </div>
+          <SheetFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Creating..." : "Create Room"}
             </Button>

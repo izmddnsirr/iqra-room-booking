@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AlertTriangleIcon, KeyRoundIcon, PackageOpenIcon } from "lucide-react";
+import { AlertTriangleIcon, KeyRoundIcon } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -48,30 +48,22 @@ export default async function ReceptionistDashboardPage() {
   const inProcessBookings = mapQueueBookings(inProcess);
   const readyBookings = mapQueueBookings(readyForCollection);
 
-  const incoming = inProcessBookings.filter((booking) => booking.endDate === today);
   const overdue = inProcessBookings.filter((booking) => booking.endDate < today);
 
   const stats = [
     {
-      label: "Incoming",
-      value: incoming.length,
-      description: "Keys scheduled for return today",
-      icon: <PackageOpenIcon className="size-5 text-muted-foreground" />,
-      labelClassName: "text-muted-foreground",
-    },
-    {
       label: "Ready for Pickup",
       value: readyCount ?? 0,
       description: "Awaiting collection at desk",
-      icon: <KeyRoundIcon className="size-5 text-primary" />,
-      labelClassName: "text-primary",
+      icon: <KeyRoundIcon className="size-5 text-blue-600" />,
+      labelClassName: "text-blue-600",
     },
     {
       label: "Overdue",
       value: overdue.length,
       description: "Requires immediate attention",
-      icon: <AlertTriangleIcon className="size-5 text-destructive" />,
-      labelClassName: "text-destructive",
+      icon: <AlertTriangleIcon className="size-5 text-orange-600" />,
+      labelClassName: "text-orange-600",
     },
   ];
 
@@ -121,9 +113,13 @@ export default async function ReceptionistDashboardPage() {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+        <div>
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of today&apos;s key handover activity.</p>
+        </div>
         <div className="space-y-4">
           <h2 className="text-sm font-semibold">Morning Briefing</h2>
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+          <div className="grid auto-rows-min gap-4 md:grid-cols-2">
             {stats.map((stat) => (
               <Card key={stat.label}>
                 <CardHeader className="flex flex-row items-center justify-between">

@@ -56,7 +56,7 @@ export function RoomActions({ room }: { room: Room }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-8">
+          <Button variant="outline" size="icon-sm">
             <MoreHorizontalIcon />
             <span className="sr-only">Open actions</span>
           </Button>

@@ -115,7 +115,6 @@ export function BookRoomDialog({
     } else if (state?.error) {
       toast.error(state.error)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state])
 
   function handleOpenChange(next: boolean) {
@@ -297,7 +296,7 @@ export function BookRoomDialog({
                 </div>
                 <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
                   <InfoIcon className="size-4 shrink-0" />
-                  <p>Payment will be arranged upon key collection at the administration office.</p>
+                  <p>The amount will be credited into the SMAP Account.</p>
                 </div>
 
                 <input type="hidden" name="room_id" value={selectedRoom.id} />

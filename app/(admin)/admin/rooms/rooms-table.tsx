@@ -6,6 +6,13 @@ import { SearchIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,8 +39,18 @@ export function RoomsTable({
   createRoomSlot: React.ReactNode
 }) {
   const [search, setSearch] = useState("")
+  const [floor, setFloor] = useState("all")
+  const [availability, setAvailability] = useState("all")
+
+  const floors = Array.from(new Set(rooms.map((room) => room.floor))).sort()
 
   const filteredRooms = rooms.filter((room) => {
+    if (floor !== "all" && room.floor !== floor) return false
+    if (availability === "available" && !room.is_available) return false
+    if (availability === "unavailable" && room.is_available) return false
+    if (availability === "visible" && !room.is_visible) return false
+    if (availability === "hidden" && room.is_visible) return false
+
     const query = search.trim().toLowerCase()
     if (!query) return true
     return (
@@ -44,8 +61,8 @@ export function RoomsTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative max-w-sm">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by room number or floor..."
@@ -54,7 +71,32 @@ export function RoomsTable({
             className="pl-9"
           />
         </div>
-        {createRoomSlot}
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={floor} onValueChange={setFloor}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Floors" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Floors</SelectItem>
+              {floors.map((f) => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={availability} onValueChange={setAvailability}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="unavailable">Unavailable</SelectItem>
+              <SelectItem value="visible">Visible</SelectItem>
+              <SelectItem value="hidden">Hidden</SelectItem>
+            </SelectContent>
+          </Select>
+          {createRoomSlot}
+        </div>
       </div>
       <div className="rounded-xl border">
         <Table>
@@ -65,7 +107,7 @@ export function RoomsTable({
               <TableHead>Availability</TableHead>
               <TableHead>Visibility</TableHead>
               <TableHead>Notes</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-12 text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -86,7 +128,7 @@ export function RoomsTable({
                 <TableCell className="max-w-64 truncate text-muted-foreground">
                   {room.notes || "—"}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <RoomActions room={room} />
                 </TableCell>
               </TableRow>

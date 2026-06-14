@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
+import { KEY_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
 import { formatBookingDate, formatBookingPeriod } from "@/lib/bookings/format"
 
 export type HistoryBooking = {
@@ -29,17 +29,12 @@ export type HistoryBooking = {
 const statusClassName: Record<BookingStatus, string> = {
   pending: "text-muted-foreground",
   approved: "text-blue-600",
-  rejected: "text-red-600",
+  key_prepared: "text-cyan-600",
   ready_for_collection: "text-blue-600",
   in_process: "text-violet-600",
   completed: "text-green-600",
   cancelled: "text-red-600",
   missing: "text-red-600",
-}
-
-const historyStatusLabels: Record<BookingStatus, string> = {
-  ...BOOKING_STATUS_LABELS,
-  completed: "Returned",
 }
 
 const columns: ColumnDef<HistoryBooking>[] = [
@@ -77,13 +72,13 @@ const columns: ColumnDef<HistoryBooking>[] = [
   },
   {
     accessorKey: "status",
-    header: () => <div className="text-right">Status</div>,
+    header: "Status",
     size: 160,
     cell: ({ row }) => {
       const status = row.getValue("status") as BookingStatus
       return (
-        <div className={`text-right font-medium ${statusClassName[status]}`}>
-          {historyStatusLabels[status]}
+        <div className={`font-medium ${statusClassName[status]}`}>
+          {KEY_STATUS_LABELS[status]}
         </div>
       )
     },
@@ -121,7 +116,6 @@ export function HistoryTable({ data }: { data: HistoryBooking[] }) {
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="completed">Returned</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>

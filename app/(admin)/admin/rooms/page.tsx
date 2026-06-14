@@ -45,6 +45,10 @@ export default async function AdminRoomsPage() {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div>
+          <h1 className="text-lg font-semibold">Manage Rooms</h1>
+          <p className="text-sm text-muted-foreground">View and manage room availability.</p>
+        </div>
         <RoomsTable rooms={rooms ?? []} createRoomSlot={<CreateRoomSheet />} />
       </div>
     </SidebarInset>

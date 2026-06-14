@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   title: "Dashboard",
 };
 
-const ACTIVE_STATUSES: BookingStatus[] = ["pending", "approved", "ready_for_collection", "in_process"];
-const HISTORY_STATUSES: BookingStatus[] = ["completed", "cancelled", "rejected"];
+const ACTIVE_STATUSES: BookingStatus[] = ["pending", "approved", "key_prepared", "ready_for_collection", "in_process"];
+const HISTORY_STATUSES: BookingStatus[] = ["completed", "cancelled"];
 
 export default async function UserDashboardPage() {
   const supabase = await createClient();

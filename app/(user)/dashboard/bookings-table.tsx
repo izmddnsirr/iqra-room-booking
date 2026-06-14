@@ -13,7 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
+import { KEY_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
+
+// From the user's perspective, "Key Prepared" is an internal receptionist
+// step - both `approved` and `key_prepared` show as "In Preparation".
+const USER_STATUS_LABELS: Record<BookingStatus, string> = {
+  ...KEY_STATUS_LABELS,
+  key_prepared: "In Preparation",
+}
 import { formatBookingPeriod } from "@/lib/bookings/format"
 import { BookRoomDialog, type ActiveBooking, type Room } from "./book-room-dialog"
 
@@ -29,19 +36,12 @@ export type DashboardBooking = {
 const statusClassName: Record<BookingStatus, string> = {
   pending: "text-muted-foreground",
   approved: "text-amber-600",
-  rejected: "text-red-600",
+  key_prepared: "text-amber-600",
   ready_for_collection: "text-blue-600",
   in_process: "text-violet-600",
   completed: "text-green-600",
   cancelled: "text-muted-foreground",
   missing: "text-red-600",
-}
-
-const statusLabels: Record<BookingStatus, string> = {
-  ...BOOKING_STATUS_LABELS,
-  approved: "In Preparation",
-  ready_for_collection: "Ready for Pickup",
-  in_process: "Collected",
 }
 
 const columns: ColumnDef<DashboardBooking>[] = [
@@ -69,13 +69,13 @@ const columns: ColumnDef<DashboardBooking>[] = [
   },
   {
     accessorKey: "status",
-    header: () => <div className="text-right">Status</div>,
+    header: "Status",
     size: 320,
     cell: ({ row }) => {
       const status = row.getValue("status") as BookingStatus
       return (
-        <div className={`text-right font-medium ${statusClassName[status]}`}>
-          {statusLabels[status]}
+        <div className={`font-medium ${statusClassName[status]}`}>
+          {USER_STATUS_LABELS[status]}
         </div>
       )
     },
@@ -96,6 +96,7 @@ export function BookingsTable({
 
   const filteredData = React.useMemo(() => {
     if (status === "all") return data
+    if (status === "approved") return data.filter((booking) => booking.status === "approved" || booking.status === "key_prepared")
     return data.filter((booking) => booking.status === status)
   }, [data, status])
 

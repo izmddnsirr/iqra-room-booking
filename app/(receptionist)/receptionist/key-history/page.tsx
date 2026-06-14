@@ -25,7 +25,7 @@ export default async function KeyHistoryPage() {
   const { data: history } = await supabase
     .from("bookings")
     .select(BOOKING_QUEUE_SELECT)
-    .in("status", ["completed", "cancelled", "rejected", "missing"])
+    .in("status", ["completed", "cancelled", "missing"])
     .order("created_at", { ascending: false });
 
   return (

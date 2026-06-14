@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
+import { useTransition } from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { SearchIcon } from "lucide-react"
+import { KeyRoundIcon, SearchIcon } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,20 +17,44 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { formatBookingPeriod } from "@/lib/bookings/format"
-import { markCollected, markReadyForCollection } from "@/lib/bookings/actions"
+import { markCollected, markKeyPrepared, markReadyForCollection } from "@/lib/bookings/actions"
 import { KEY_STATUS_COLORS } from "@/lib/bookings/types"
 import { ApplicantCell } from "./applicant-cell"
-import { BookingActionSelect, type BookingAction } from "./booking-action-select"
 import type { QueueBooking } from "./booking-queue-mapper"
 
 const statusBadge: Record<string, { label: string; className: string }> = {
   approved: { label: "In Preparation", className: KEY_STATUS_COLORS.approved },
+  key_prepared: { label: "Key Prepared", className: KEY_STATUS_COLORS.key_prepared },
   ready_for_collection: { label: "Ready for Pickup", className: KEY_STATUS_COLORS.ready_for_collection },
 }
 
-const actionsByStatus: Record<string, BookingAction[]> = {
-  approved: [{ value: "ready", label: "Mark Ready", onAction: markReadyForCollection }],
-  ready_for_collection: [{ value: "collect", label: "Hand Over Key", onAction: markCollected }],
+const actionByStatus: Record<string, { label: string; onAction: (bookingId: string) => Promise<unknown> }> = {
+  approved: { label: "Mark Key Prepared", onAction: markKeyPrepared },
+  key_prepared: { label: "Mark Ready for Pickup", onAction: markReadyForCollection },
+  ready_for_collection: { label: "Hand Over Key", onAction: markCollected },
+}
+
+function RowAction({ bookingId, status }: { bookingId: string; status: string }) {
+  const [isPending, startTransition] = useTransition()
+
+  const action = actionByStatus[status]
+  if (!action) return null
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={isPending}
+      onClick={() =>
+        startTransition(async () => {
+          await action.onAction(bookingId)
+        })
+      }
+    >
+      <KeyRoundIcon className="size-4" />
+      {action.label}
+    </Button>
+  )
 }
 
 const columns: ColumnDef<QueueBooking>[] = [
@@ -68,12 +94,9 @@ const columns: ColumnDef<QueueBooking>[] = [
   {
     id: "action",
     header: "Action",
-    size: 180,
-    cell: ({ row }) => {
-      const actions = actionsByStatus[row.original.status]
-      if (!actions) return null
-      return <BookingActionSelect bookingId={row.original.id} actions={actions} />
-    },
+    size: 200,
+    meta: { className: "text-right" },
+    cell: ({ row }) => <RowAction bookingId={row.original.id} status={row.original.status} />,
   },
 ]
 
@@ -105,6 +128,7 @@ export function BookingsTable({ data }: { data: QueueBooking[] }) {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="approved">In Preparation</SelectItem>
+            <SelectItem value="key_prepared">Key Prepared</SelectItem>
             <SelectItem value="ready_for_collection">Ready for Pickup</SelectItem>
           </SelectContent>
         </Select>

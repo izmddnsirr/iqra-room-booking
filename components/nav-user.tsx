@@ -1,5 +1,8 @@
 "use client"
 
+import { useEffect, useSyncExternalStore } from "react"
+import { useTheme } from "next-themes"
+
 import { logout } from "@/app/(auth)/actions"
 import {
   Avatar,
@@ -9,7 +12,6 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -21,20 +23,43 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, BadgeCheckIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { ChevronsUpDownIcon, LogOutIcon, MoonIcon, SunIcon } from "lucide-react"
+
+function subscribe() {
+  return () => {}
+}
 
 export function NavUser({
   user,
-  notificationCount = 0,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
-  notificationCount?: number
 }) {
   const { isMobile } = useSidebar()
+  const { resolvedTheme, setTheme } = useTheme()
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false)
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null
+      const isTyping =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+
+      if (isTyping || event.metaKey || event.ctrlKey || event.altKey) return
+
+      if (event.key.toLowerCase() === "d") {
+        setTheme(resolvedTheme === "dark" ? "light" : "dark")
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [resolvedTheme, setTheme])
 
   return (
     <SidebarMenu>
@@ -75,23 +100,14 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheckIcon
-                />
-                Account
+            {mounted && (
+              <DropdownMenuItem
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              >
+                {resolvedTheme === "dark" ? <SunIcon /> : <MoonIcon />}
+                {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon
-                />
-                Notifications
-                {notificationCount > 0 && (
-                  <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-green-600 text-xs font-medium text-white">
-                    {notificationCount}
-                  </span>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => logout()}>
               <LogOutIcon

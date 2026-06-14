@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { CalendarCheckIcon, DoorOpenIcon, UsersIcon } from "lucide-react";
+import { AlertTriangleIcon, CalendarCheckIcon, DoorOpenIcon, KeyRoundIcon, UsersIcon } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -18,7 +18,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { BookingStatus } from "@/lib/bookings/types";
 import { RecentBookingsTable } from "./recent-bookings-table";
 import { PendingPrepTable } from "./pending-prep-table";
+import { OverdueMissingTable } from "./overdue-missing-table";
 import type { AdminBooking } from "./bookings/all-bookings-table";
+import { BOOKING_QUEUE_SELECT, mapQueueBookings } from "../../(receptionist)/receptionist/booking-queue-mapper";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
@@ -27,10 +29,20 @@ export const metadata: Metadata = {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  const [{ count: bookingsCount }, { count: roomsCount }, { count: usersCount }, { data: recentBookings }, { data: pendingPrepBookings }] = await Promise.all([
+  const [
+    { count: bookingsCount },
+    { count: roomsCount },
+    { count: usersCount },
+    { count: readyCount },
+    { data: recentBookings },
+    { data: pendingPrepBookings },
+    { data: inProcessBookings },
+    { data: missingBookings },
+  ] = await Promise.all([
     supabase.from("bookings").select("*", { count: "exact", head: true }),
     supabase.from("rooms").select("*", { count: "exact", head: true }),
     supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "ready_for_collection"),
     supabase
       .from("bookings")
       .select("id, start_date, end_date, total_amount, status, profiles(full_name), rooms(room_number, floor)")
@@ -39,9 +51,21 @@ export default async function AdminDashboardPage() {
     supabase
       .from("bookings")
       .select("id, start_date, end_date, total_amount, status, profiles(full_name), rooms(room_number, floor)")
-      .eq("status", "approved")
+      .in("status", ["approved", "key_prepared"])
       .order("start_date", { ascending: true }),
+    supabase
+      .from("bookings")
+      .select(BOOKING_QUEUE_SELECT)
+      .eq("status", "in_process")
+      .order("end_date", { ascending: true }),
+    supabase
+      .from("bookings")
+      .select(BOOKING_QUEUE_SELECT)
+      .eq("status", "missing")
+      .order("end_date", { ascending: true }),
   ]);
+
+  const pendingPrepCount = (pendingPrepBookings ?? []).length;
 
   const mapBooking = (booking: {
     id: string;
@@ -69,7 +93,34 @@ export default async function AdminDashboardPage() {
   const recentBookingsData: AdminBooking[] = (recentBookings ?? []).map(mapBooking);
   const pendingPrepData: AdminBooking[] = (pendingPrepBookings ?? []).map(mapBooking);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const inProcess = mapQueueBookings(inProcessBookings).map((booking) => ({
+    ...booking,
+    isOverdue: booking.endDate < today,
+  }));
+  const overdue = inProcess.filter((booking) => booking.isOverdue);
+  const missing = mapQueueBookings(missingBookings).map((booking) => ({ ...booking, isOverdue: false }));
+  const overdueMissingData = [...overdue, ...missing];
+
   const stats = [
+    {
+      label: "Key Pending to Prepare",
+      value: pendingPrepCount,
+      icon: <KeyRoundIcon className="size-5 text-amber-600" />,
+      labelClassName: "text-amber-600",
+    },
+    {
+      label: "Keys Ready",
+      value: readyCount ?? 0,
+      icon: <KeyRoundIcon className="size-5 text-blue-600" />,
+      labelClassName: "text-blue-600",
+    },
+    {
+      label: "Overdue & Missing",
+      value: overdueMissingData.length,
+      icon: <AlertTriangleIcon className="size-5 text-orange-600" />,
+      labelClassName: "text-orange-600",
+    },
     {
       label: "Total Bookings",
       value: bookingsCount ?? 0,
@@ -109,6 +160,10 @@ export default async function AdminDashboardPage() {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div>
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of bookings, rooms, and users.</p>
+        </div>
         <div className="grid auto-rows-min gap-4 md:grid-cols-3">
           {stats.map((stat) => (
             <Card key={stat.label}>
@@ -125,6 +180,7 @@ export default async function AdminDashboardPage() {
           ))}
         </div>
         <PendingPrepTable bookings={pendingPrepData} />
+        <OverdueMissingTable bookings={overdueMissingData} />
         <RecentBookingsTable bookings={recentBookingsData} />
       </div>
     </SidebarInset>
