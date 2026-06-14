@@ -31,11 +31,6 @@ export default async function AdminLayout({
     .from("bookings")
     .select("*", { count: "exact", head: true });
 
-  const { count: pendingApprovalsCount } = await supabase
-    .from("bookings")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "pending");
-
   return (
     <SidebarProvider>
       <AppSidebar
@@ -45,7 +40,6 @@ export default async function AdminLayout({
           role: profile.role as Role,
         }}
         allBookingsCount={allBookingsCount ?? 0}
-        pendingApprovalsCount={pendingApprovalsCount ?? 0}
       />
       {children}
     </SidebarProvider>

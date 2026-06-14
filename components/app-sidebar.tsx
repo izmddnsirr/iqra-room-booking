@@ -13,7 +13,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import type { Role } from "@/lib/auth"
-import { LayoutDashboardIcon, CalendarCheckIcon, DoorOpenIcon, UsersIcon, CalendarPlusIcon, ListChecksIcon, InfoIcon, LayoutGridIcon, HourglassIcon, KeyRoundIcon, HistoryIcon, ClockIcon, SettingsIcon } from "lucide-react"
+import { LayoutDashboardIcon, CalendarCheckIcon, DoorOpenIcon, UsersIcon, CalendarPlusIcon, ListChecksIcon, InfoIcon, LayoutGridIcon, HourglassIcon, KeyRoundIcon, HistoryIcon, SettingsIcon } from "lucide-react"
 
 // This is sample data.
 const data = {
@@ -36,11 +36,6 @@ const data = {
       title: "All Bookings",
       url: "/admin/bookings",
       icon: <CalendarCheckIcon />,
-    },
-    {
-      title: "Pending Approvals",
-      url: "/admin/pending-approvals",
-      icon: <ClockIcon />,
     },
   ],
   adminNavManagement: [
@@ -95,14 +90,14 @@ const data = {
   ],
   receptionistNavBookings: [
     {
-      title: "In Process",
-      url: "/receptionist/in-process",
-      icon: <HourglassIcon />,
-    },
-    {
-      title: "Ready for Collection",
+      title: "Bookings",
       url: "/receptionist/ready-collection",
       icon: <KeyRoundIcon />,
+    },
+    {
+      title: "Active Reservations",
+      url: "/receptionist/in-process",
+      icon: <HourglassIcon />,
     },
   ],
   receptionistNavOther: [
@@ -124,7 +119,6 @@ export function AppSidebar({
   user,
   notificationCount,
   allBookingsCount,
-  pendingApprovalsCount,
   inProcessCount,
   readyForCollectionCount,
   ...props
@@ -132,7 +126,6 @@ export function AppSidebar({
   user: { name: string; email: string; role: Role }
   notificationCount?: number
   allBookingsCount?: number
-  pendingApprovalsCount?: number
   inProcessCount?: number
   readyForCollectionCount?: number
 }) {
@@ -141,9 +134,7 @@ export function AppSidebar({
     badge:
       item.url === "/admin/bookings"
         ? allBookingsCount || undefined
-        : item.url === "/admin/pending-approvals"
-          ? pendingApprovalsCount || undefined
-          : undefined,
+        : undefined,
   }))
 
   const receptionistNavBookings = data.receptionistNavBookings.map((item) => ({
@@ -156,36 +147,61 @@ export function AppSidebar({
           : undefined,
   }))
 
+  const receptionistSidebarStyle = {
+    "--sidebar": "#0F172A",
+    "--sidebar-foreground": "oklch(0.985 0 0)",
+    "--sidebar-accent": "oklch(0.269 0.02 240)",
+    "--sidebar-accent-foreground": "oklch(0.985 0 0)",
+    "--sidebar-border": "oklch(1 0 0 / 10%)",
+  } as React.CSSProperties
+
+  const adminSidebarStyle = {
+    "--sidebar": "#64748B",
+    "--sidebar-foreground": "oklch(0.985 0 0)",
+    "--sidebar-accent": "oklch(0.5 0.02 240)",
+    "--sidebar-accent-foreground": "oklch(0.985 0 0)",
+    "--sidebar-border": "oklch(1 0 0 / 10%)",
+  } as React.CSSProperties
+
+  const sidebarStyle =
+    user.role === "receptionist"
+      ? receptionistSidebarStyle
+      : user.role === "admin"
+        ? adminSidebarStyle
+        : undefined
+
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher team={data.team} plan={ROLE_LABELS[user.role]} />
-      </SidebarHeader>
-      <SidebarContent>
-        {user.role === "admin" ? (
-          <>
-            <NavMain label="Main" items={data.adminNavMain} />
-            <NavMain label="Bookings" items={adminNavBookings} />
-            <NavMain label="Management" items={data.adminNavManagement} />
-            <NavMain label="System" items={data.adminNavSystem} />
-          </>
-        ) : user.role === "receptionist" ? (
-          <>
-            <NavMain label="Main" items={data.receptionistNavMain} />
-            <NavMain label="Bookings" items={receptionistNavBookings} />
-            <NavMain label="Other" items={data.receptionistNavOther} />
-          </>
-        ) : (
-          <>
-            <NavMain label="Menu" items={data.userNavMain} />
-            <NavMain label="Information" items={data.userNavInfo} />
-          </>
-        )}
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={{ name: user.name, email: user.email, avatar: "" }} notificationCount={notificationCount} />
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+    <div style={sidebarStyle}>
+      <Sidebar collapsible="icon" style={sidebarStyle} {...props}>
+        <SidebarHeader>
+          <TeamSwitcher team={data.team} plan={ROLE_LABELS[user.role]} />
+        </SidebarHeader>
+        <SidebarContent>
+          {user.role === "admin" ? (
+            <>
+              <NavMain label="Main" items={data.adminNavMain} />
+              <NavMain label="Bookings" items={adminNavBookings} />
+              <NavMain label="Management" items={data.adminNavManagement} />
+              <NavMain label="System" items={data.adminNavSystem} />
+            </>
+          ) : user.role === "receptionist" ? (
+            <>
+              <NavMain label="Main" items={data.receptionistNavMain} />
+              <NavMain label="Bookings" items={receptionistNavBookings} />
+              <NavMain label="Other" items={data.receptionistNavOther} />
+            </>
+          ) : (
+            <>
+              <NavMain label="Menu" items={data.userNavMain} />
+              <NavMain label="Information" items={data.userNavInfo} />
+            </>
+          )}
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser user={{ name: user.name, email: user.email, avatar: "" }} notificationCount={notificationCount} />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    </div>
   )
 }

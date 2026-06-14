@@ -14,37 +14,35 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
-import { formatBookingPeriod } from "@/lib/bookings/format"
-import { BookRoomDialog, type ActiveBooking, type Room } from "./book-room-dialog"
+import { formatBookingDate, formatBookingPeriod } from "@/lib/bookings/format"
 
-export type DashboardBooking = {
+export type HistoryBooking = {
   id: string
   room: string
   floor: string
   startDate: string
   endDate: string
+  closedDate: string
   status: BookingStatus
 }
 
 const statusClassName: Record<BookingStatus, string> = {
   pending: "text-muted-foreground",
-  approved: "text-amber-600",
+  approved: "text-blue-600",
   rejected: "text-red-600",
   ready_for_collection: "text-blue-600",
   in_process: "text-violet-600",
   completed: "text-green-600",
-  cancelled: "text-muted-foreground",
+  cancelled: "text-red-600",
   missing: "text-red-600",
 }
 
-const statusLabels: Record<BookingStatus, string> = {
+const historyStatusLabels: Record<BookingStatus, string> = {
   ...BOOKING_STATUS_LABELS,
-  approved: "In Preparation",
-  ready_for_collection: "Ready for Pickup",
-  in_process: "Collected",
+  completed: "Returned",
 }
 
-const columns: ColumnDef<DashboardBooking>[] = [
+const columns: ColumnDef<HistoryBooking>[] = [
   {
     accessorKey: "room",
     header: "Room",
@@ -68,29 +66,31 @@ const columns: ColumnDef<DashboardBooking>[] = [
     ),
   },
   {
+    accessorKey: "closedDate",
+    header: "Closed Date",
+    size: 160,
+    cell: ({ row }) => (
+      <span className="text-muted-foreground uppercase">
+        {formatBookingDate(row.original.closedDate)}
+      </span>
+    ),
+  },
+  {
     accessorKey: "status",
     header: () => <div className="text-right">Status</div>,
-    size: 320,
+    size: 160,
     cell: ({ row }) => {
       const status = row.getValue("status") as BookingStatus
       return (
         <div className={`text-right font-medium ${statusClassName[status]}`}>
-          {statusLabels[status]}
+          {historyStatusLabels[status]}
         </div>
       )
     },
   },
 ]
 
-export function BookingsTable({
-  data,
-  rooms,
-  activeRoomBookings,
-}: {
-  data: DashboardBooking[]
-  rooms: Room[]
-  activeRoomBookings: ActiveBooking[]
-}) {
+export function HistoryTable({ data }: { data: HistoryBooking[] }) {
   const [search, setSearch] = React.useState("")
   const [status, setStatus] = React.useState<string>("all")
 
@@ -102,12 +102,12 @@ export function BookingsTable({
   return (
     <div className="rounded-xl border bg-card p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Bookings</h2>
+        <h2 className="text-lg font-semibold">History</h2>
         <div className="flex items-center gap-2">
           <div className="relative">
             <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search bookings..."
+              placeholder="Search history..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-56 pl-8"
@@ -119,12 +119,11 @@ export function BookingsTable({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="approved">In Preparation</SelectItem>
-              <SelectItem value="ready_for_collection">Ready for Pickup</SelectItem>
-              <SelectItem value="in_process">Collected</SelectItem>
+              <SelectItem value="completed">Returned</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
-          <BookRoomDialog rooms={rooms} activeBookings={activeRoomBookings} />
         </div>
       </div>
       <DataTable

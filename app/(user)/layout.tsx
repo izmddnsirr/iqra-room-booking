@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
-import type { Role } from "@/lib/auth";
+import { RentalGuidelinesDialog } from "./rental-guidelines-dialog";
+import { RoomRulesDialog } from "./room-rules-dialog";
+import { UserMenu } from "./user-menu";
 
 export default async function UserLayout({
   children,
@@ -27,23 +27,21 @@ export default async function UserLayout({
     redirect("/login");
   }
 
-  const { count: readyCount } = await supabase
-    .from("bookings")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("status", "ready_for_collection");
-
   return (
-    <SidebarProvider>
-      <AppSidebar
-        user={{
-          name: profile.full_name,
-          email: profile.email,
-          role: profile.role as Role,
-        }}
-        notificationCount={readyCount ?? 0}
-      />
-      {children}
-    </SidebarProvider>
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b bg-background px-6 py-3">
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ptta.png" alt="PTTA logo" className="size-8 object-contain" />
+          <span className="font-semibold">Iqra Room</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <RentalGuidelinesDialog />
+          <RoomRulesDialog />
+          <UserMenu name={profile.full_name ?? "User"} email={profile.email ?? user.email ?? ""} />
+        </div>
+      </header>
+      <div className="flex flex-1 flex-col">{children}</div>
+    </div>
   );
 }

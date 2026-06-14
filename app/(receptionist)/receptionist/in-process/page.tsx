@@ -12,15 +12,14 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { markCompleted } from "@/lib/bookings/actions";
-import { BookingQueueTable } from "../booking-queue-table";
 import { BOOKING_QUEUE_SELECT, mapQueueBookings } from "../booking-queue-mapper";
+import { ActiveReservationsTable } from "../active-reservations-table";
 
 export const metadata: Metadata = {
-  title: "In Process",
+  title: "Active Reservations",
 };
 
-export default async function InProcessPage() {
+export default async function ActiveReservationsPage() {
   const supabase = await createClient();
 
   const { data: inProcess } = await supabase
@@ -28,6 +27,12 @@ export default async function InProcessPage() {
     .select(BOOKING_QUEUE_SELECT)
     .eq("status", "in_process")
     .order("created_at", { ascending: true });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const data = mapQueueBookings(inProcess).map((booking) => ({
+    ...booking,
+    isOverdue: booking.endDate < today,
+  }));
 
   return (
     <SidebarInset>
@@ -41,17 +46,18 @@ export default async function InProcessPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>In Process</BreadcrumbPage>
+                <BreadcrumbPage>Active Reservations</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <BookingQueueTable
-          bookings={mapQueueBookings(inProcess)}
-          action={{ label: "Mark Returned", onAction: markCompleted }}
-        />
+        <div>
+          <h1 className="text-lg font-semibold">Active Reservations</h1>
+          <p className="text-sm text-muted-foreground">Keys currently checked out.</p>
+        </div>
+        <ActiveReservationsTable data={data} />
       </div>
     </SidebarInset>
   );

@@ -18,23 +18,11 @@ export function bookingApprovedEmail({ fullName, roomNumber, startDate, endDate,
   rentalMonths: number
   totalAmount: number
 }) {
-  return wrapper('Booking Approved', `
+  return wrapper('Booking Confirmed', `
     <p>Hi ${fullName},</p>
-    <p>Your booking for <strong>Room ${roomNumber}</strong> (${formatBookingPeriod(startDate, endDate)}) has been approved.</p>
+    <p>Your booking for <strong>Room ${roomNumber}</strong> (${formatBookingPeriod(startDate, endDate)}) has been confirmed.</p>
     <p>Total payment: <strong>RM ${totalAmount.toFixed(2)}</strong> for ${rentalMonths} month${rentalMonths > 1 ? 's' : ''}, to be credited to SMAP.</p>
     <p>You will be notified once your key is ready for collection.</p>
-  `)
-}
-
-export function bookingRejectedEmail({ fullName, roomNumber, startDate, endDate }: {
-  fullName: string
-  roomNumber: string
-  startDate: string
-  endDate: string
-}) {
-  return wrapper('Booking Rejected', `
-    <p>Hi ${fullName},</p>
-    <p>Unfortunately, your booking for <strong>Room ${roomNumber}</strong> (${formatBookingPeriod(startDate, endDate)}) has been rejected.</p>
   `)
 }
 

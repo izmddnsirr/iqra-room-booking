@@ -2,10 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/resend'
 import {
   bookingApprovedEmail,
-  bookingRejectedEmail,
   bookingReadyForCollectionEmail,
   bookingCompletedEmail,
 } from '@/lib/email/templates'
@@ -14,6 +14,7 @@ import type { BookingStatus } from './types'
 export type BookingFormState = { error?: string; success?: boolean } | undefined
 
 const MONTHLY_RATE = 20
+const ACCESS_CARD_PENALTY = 50
 
 async function getProfileRole() {
   const supabase = await createClient()
@@ -79,7 +80,8 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
   const end = new Date(start)
   end.setMonth(end.getMonth() + months)
 
-  const { data: existingBookings } = await supabase
+  const adminClient = createAdminClient()
+  const { data: existingBookings } = await adminClient
     .from('bookings')
     .select('start_date, end_date')
     .eq('room_id', roomId)
@@ -106,14 +108,41 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
     rental_months: months,
     monthly_rate: MONTHLY_RATE,
     total_amount: totalAmount,
+    status: 'approved',
   })
 
   if (error) return { error: error.message }
 
-  revalidatePath('/booking/status')
   revalidatePath('/dashboard')
-  revalidatePath('/admin/pending-approvals')
   revalidatePath('/admin/bookings')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, full_name')
+    .eq('id', userId)
+    .single()
+
+  const { data: bookedRoom } = await supabase
+    .from('rooms')
+    .select('room_number')
+    .eq('id', roomId)
+    .single()
+
+  if (profile?.email) {
+    const { subject, html } = {
+      subject: 'Booking Confirmed - Iqra Room',
+      html: bookingApprovedEmail({
+        fullName: profile.full_name,
+        roomNumber: bookedRoom?.room_number ?? '—',
+        startDate: startStr,
+        endDate: endStr,
+        rentalMonths: months,
+        totalAmount,
+      }),
+    }
+    await sendEmail({ to: profile.email, subject, html })
+  }
+
   return { success: true }
 }
 
@@ -128,13 +157,11 @@ export async function cancelBooking(bookingId: string) {
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
     .eq('user_id', userId)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'approved'])
 
   if (error) return { error: error.message }
 
-  revalidatePath('/booking/status')
   revalidatePath('/dashboard')
-  revalidatePath('/admin/pending-approvals')
   revalidatePath('/admin/bookings')
   return { success: true }
 }
@@ -200,27 +227,9 @@ async function setBookingStatus(
   return { success: true }
 }
 
-export async function approveBooking(bookingId: string) {
-  return setBookingStatus(bookingId, 'approved', ['admin'], [
-    '/booking/status', '/dashboard', '/admin/pending-approvals', '/admin/bookings', '/receptionist/ready-collection',
-  ], (details) => ({
-    subject: 'Booking Approved - Iqra Room',
-    html: bookingApprovedEmail(details),
-  }))
-}
-
-export async function rejectBooking(bookingId: string) {
-  return setBookingStatus(bookingId, 'rejected', ['admin'], [
-    '/booking/status', '/dashboard', '/admin/pending-approvals', '/admin/bookings', '/receptionist/key-history',
-  ], (details) => ({
-    subject: 'Booking Rejected - Iqra Room',
-    html: bookingRejectedEmail(details),
-  }))
-}
-
 export async function markReadyForCollection(bookingId: string) {
   return setBookingStatus(bookingId, 'ready_for_collection', ['admin', 'receptionist'], [
-    '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/ready-collection',
+    '/dashboard', '/admin', '/admin/bookings', '/receptionist/ready-collection',
   ], (details) => ({
     subject: 'Key Ready for Collection - Iqra Room',
     html: bookingReadyForCollectionEmail(details),
@@ -240,4 +249,50 @@ export async function markCompleted(bookingId: string) {
     subject: 'Booking Completed - Iqra Room',
     html: bookingCompletedEmail(details),
   }))
+}
+
+export async function markMissing(bookingId: string) {
+  return setBookingStatus(bookingId, 'missing', ['admin', 'receptionist'], [
+    '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/in-process', '/receptionist/key-history',
+  ])
+}
+
+export async function markFound(bookingId: string) {
+  return setBookingStatus(bookingId, 'in_process', ['admin', 'receptionist'], [
+    '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/in-process', '/receptionist/key-history',
+  ])
+}
+
+export async function chargePenalty(bookingId: string, amount: number = ACCESS_CARD_PENALTY) {
+  const ctx = await getProfileRole()
+  if (!ctx) return { error: 'You must be logged in.' }
+  if (!['admin', 'receptionist'].includes(ctx.role)) return { error: 'Not authorized.' }
+
+  const { supabase } = ctx
+
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('status, penalty_charged_at')
+    .eq('id', bookingId)
+    .single()
+
+  if (!booking || booking.status !== 'missing') {
+    return { error: 'Only missing bookings can be charged a penalty.' }
+  }
+  if (booking.penalty_charged_at) {
+    return { error: 'A penalty has already been charged for this booking.' }
+  }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ penalty_amount: amount, penalty_charged_at: new Date().toISOString() })
+    .eq('id', bookingId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/admin/bookings')
+  revalidatePath('/receptionist/in-process')
+  revalidatePath('/receptionist/key-history')
+  return { success: true }
 }

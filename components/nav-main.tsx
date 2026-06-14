@@ -1,5 +1,7 @@
 "use client"
 
+import { usePathname } from "next/navigation"
+
 import {
   Collapsible,
   CollapsibleContent,
@@ -35,12 +37,16 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const pathname = usePathname()
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) =>
-          item.items?.length ? (
+        {items.map((item) => {
+          const isActive = pathname === item.url
+
+          return item.items?.length ? (
             <Collapsible
               key={item.title}
               asChild
@@ -72,7 +78,7 @@ export function NavMain({
             </Collapsible>
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
                 <a href={item.url}>
                   {item.icon}
                   <span>{item.title}</span>
@@ -83,7 +89,7 @@ export function NavMain({
               )}
             </SidebarMenuItem>
           )
-        )}
+        })}
       </SidebarMenu>
     </SidebarGroup>
   )

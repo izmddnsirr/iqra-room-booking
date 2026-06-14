@@ -12,27 +12,20 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { markCollected, markReadyForCollection } from "@/lib/bookings/actions";
-import { BookingQueueTable } from "../booking-queue-table";
 import { BOOKING_QUEUE_SELECT, mapQueueBookings } from "../booking-queue-mapper";
+import { BookingsTable } from "../bookings-table";
 
 export const metadata: Metadata = {
-  title: "Ready for Collection",
+  title: "Bookings",
 };
 
-export default async function ReadyCollectionPage() {
+export default async function BookingsPage() {
   const supabase = await createClient();
 
-  const { data: approved } = await supabase
+  const { data: bookings } = await supabase
     .from("bookings")
     .select(BOOKING_QUEUE_SELECT)
-    .eq("status", "approved")
-    .order("created_at", { ascending: true });
-
-  const { data: readyForCollection } = await supabase
-    .from("bookings")
-    .select(BOOKING_QUEUE_SELECT)
-    .eq("status", "ready_for_collection")
+    .in("status", ["approved", "ready_for_collection"])
     .order("created_at", { ascending: true });
 
   return (
@@ -47,27 +40,18 @@ export default async function ReadyCollectionPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Ready for Collection</BreadcrumbPage>
+                <BreadcrumbPage>Bookings</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Awaiting Key Preparation</h2>
-          <BookingQueueTable
-            bookings={mapQueueBookings(approved)}
-            action={{ label: "Mark Ready", onAction: markReadyForCollection }}
-          />
+      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div>
+          <h1 className="text-lg font-semibold">Bookings</h1>
+          <p className="text-sm text-muted-foreground">Approved bookings awaiting key handover.</p>
         </div>
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Ready for Collection</h2>
-          <BookingQueueTable
-            bookings={mapQueueBookings(readyForCollection)}
-            action={{ label: "Hand Over Key", onAction: markCollected }}
-          />
-        </div>
+        <BookingsTable data={mapQueueBookings(bookings)} />
       </div>
     </SidebarInset>
   );

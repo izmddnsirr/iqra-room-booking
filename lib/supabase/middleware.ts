@@ -72,8 +72,7 @@ export async function updateSession(request: NextRequest) {
 
   const isUserRoute =
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/booking') ||
-    pathname.startsWith('/room-rules')
+    pathname.startsWith('/booking')
 
   if (isUserRoute && role !== 'user') {
     return NextResponse.redirect(new URL(home, request.url))

@@ -35,6 +35,7 @@ const statusVariant: Record<BookingStatus, "default" | "outline" | "destructive"
   in_process: "secondary",
   completed: "secondary",
   cancelled: "destructive",
+  missing: "destructive",
 }
 
 export function AllBookingsTable({ bookings }: { bookings: AdminBooking[] }) {

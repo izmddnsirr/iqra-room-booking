@@ -12,8 +12,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
-import { BookingQueueTable } from "../booking-queue-table";
 import { BOOKING_QUEUE_SELECT, mapQueueBookings } from "../booking-queue-mapper";
+import { KeyHistoryTable } from "../key-history-table";
 
 export const metadata: Metadata = {
   title: "Key History",
@@ -25,7 +25,7 @@ export default async function KeyHistoryPage() {
   const { data: history } = await supabase
     .from("bookings")
     .select(BOOKING_QUEUE_SELECT)
-    .in("status", ["completed", "cancelled", "rejected"])
+    .in("status", ["completed", "cancelled", "rejected", "missing"])
     .order("created_at", { ascending: false });
 
   return (
@@ -47,7 +47,11 @@ export default async function KeyHistoryPage() {
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <BookingQueueTable bookings={mapQueueBookings(history)} />
+        <div>
+          <h1 className="text-lg font-semibold">Key History</h1>
+          <p className="text-sm text-muted-foreground">Closed records and audit trail.</p>
+        </div>
+        <KeyHistoryTable data={mapQueueBookings(history)} />
       </div>
     </SidebarInset>
   );
