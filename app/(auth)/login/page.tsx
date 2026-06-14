@@ -27,8 +27,8 @@ export default function LoginPage() {
       </div>
       <div className="relative hidden bg-muted lg:block">
         <Image
-          src="/placeholder.svg"
-          alt="Image"
+          src="/ptta-uthm.jpg"
+          alt="Perpustakaan Tunku Tun Aminah"
           fill
           className="object-cover dark:brightness-[0.2] dark:grayscale"
         />

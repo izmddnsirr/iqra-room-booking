@@ -23,9 +23,9 @@ export function LoginForm({
     <form action={formAction} className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <h1 className="text-2xl font-bold">Login with UTHM SSO</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Enter your email below to login to your account
+            Enter your UTHM student/staff credentials to continue
           </p>
         </div>
         <Field>
@@ -54,7 +54,7 @@ export function LoginForm({
         {state?.error && <FieldError>{state.error}</FieldError>}
         <Field>
           <Button type="submit" disabled={pending}>
-            {pending ? "Logging in..." : "Login"}
+            {pending ? "Signing in..." : "Sign in with UTHM SSO"}
           </Button>
         </Field>
       </FieldGroup>

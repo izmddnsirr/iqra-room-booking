@@ -45,6 +45,11 @@ const data = {
       icon: <DoorOpenIcon />,
     },
     {
+      title: "Room Audit Log",
+      url: "/admin/rooms/audit-log",
+      icon: <HistoryIcon />,
+    },
+    {
       title: "Manage Users",
       url: "/admin/users",
       icon: <UsersIcon />,

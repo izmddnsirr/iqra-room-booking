@@ -20,6 +20,22 @@ export type BookingFormState = { error?: string; success?: boolean } | undefined
 const MONTHLY_RATE = 20
 const ACCESS_CARD_PENALTY = 50
 
+async function verifyTurnstileToken(token: string) {
+  if (!token) return false
+
+  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      secret: process.env.TURNSTILE_SECRET_KEY,
+      response: token,
+    }),
+  })
+
+  const data = await response.json()
+  return data.success === true
+}
+
 async function getProfileRole() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -43,6 +59,11 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
   const roomId = formData.get('room_id')
   const startDate = formData.get('start_date')
   const rentalMonths = formData.get('rental_months')
+  const turnstileToken = formData.get('turnstile_token')
+
+  if (typeof turnstileToken !== 'string' || !(await verifyTurnstileToken(turnstileToken))) {
+    return { error: 'Verification failed. Please try again.' }
+  }
 
   if (typeof roomId !== 'string' || !roomId) {
     return { error: 'Please select a room.' }

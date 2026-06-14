@@ -4,6 +4,7 @@ import * as React from "react"
 import { useActionState } from "react"
 import { addMonths, format, startOfToday } from "date-fns"
 import { CalendarIcon, CheckIcon, InfoIcon, PlusIcon } from "lucide-react"
+import { Turnstile } from "@marsidev/react-turnstile"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -75,6 +76,7 @@ export function BookRoomDialog({
   const [rentalMonths, setRentalMonths] = React.useState(1)
   const [floorFilter, setFloorFilter] = React.useState("All")
   const [selectedRoomId, setSelectedRoomId] = React.useState<string | undefined>(undefined)
+  const [turnstileToken, setTurnstileToken] = React.useState("")
   const [state, formAction, pending] = useActionState(createBooking, undefined)
 
   const floors = Array.from(new Set(rooms.map((room) => room.floor)))
@@ -126,6 +128,7 @@ export function BookRoomDialog({
       setRentalMonths(1)
       setFloorFilter("All")
       setSelectedRoomId(undefined)
+      setTurnstileToken("")
     }
   }
 
@@ -305,6 +308,16 @@ export function BookRoomDialog({
                 <input type="hidden" name="room_id" value={selectedRoom.id} />
                 <input type="hidden" name="start_date" value={format(startDate, "yyyy-MM-dd")} />
                 <input type="hidden" name="rental_months" value={rentalMonths} />
+                <input type="hidden" name="turnstile_token" value={turnstileToken} />
+
+                <div className="flex justify-center">
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                    onSuccess={setTurnstileToken}
+                    onExpire={() => setTurnstileToken("")}
+                    onError={() => setTurnstileToken("")}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -341,7 +354,7 @@ export function BookRoomDialog({
                 <Button type="button" variant="outline" onClick={() => setStep("details")}>
                   Back
                 </Button>
-                <Button type="submit" disabled={pending}>
+                <Button type="submit" disabled={pending || !turnstileToken}>
                   <CheckIcon className="size-4" />
                   {pending ? "Submitting..." : "Confirm Booking"}
                 </Button>
