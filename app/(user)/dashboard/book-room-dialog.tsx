@@ -49,7 +49,7 @@ export type Room = {
   id: string
   room_number: string
   floor: string
-  is_available: boolean
+  status: "active" | "hidden"
   notes: string | null
 }
 
@@ -82,7 +82,7 @@ export function BookRoomDialog({
 
   const isRoomAvailable = React.useCallback(
     (room: Room) => {
-      if (!room.is_available) return false
+      if (room.status !== "active") return false
       if (!startDate) return true
 
       const start = format(startDate, "yyyy-MM-dd")
@@ -253,23 +253,26 @@ export function BookRoomDialog({
                                     selected && "border-primary bg-primary/5 text-primary"
                                   )}
                                 >
-                                  <p className="font-semibold">{room.room_number}</p>
-                                  <p className="text-xs text-muted-foreground">{room.floor}</p>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "mt-2 gap-1.5 border-transparent px-0 text-xs",
-                                      available ? "text-emerald-600" : "text-muted-foreground"
-                                    )}
-                                  >
-                                    <span
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="font-semibold">{room.room_number}</p>
+                                    <Badge
+                                      variant="outline"
                                       className={cn(
-                                        "size-1.5 rounded-full",
-                                        available ? "bg-emerald-500" : "bg-muted-foreground"
+                                        "gap-1.5 border-transparent px-0 text-xs",
+                                        available ? "text-emerald-600" : "text-muted-foreground"
                                       )}
-                                    />
-                                    {available ? "Available" : "Unavailable"}
-                                  </Badge>
+                                    >
+                                      <span
+                                        className={cn(
+                                          "size-1.5 rounded-full",
+                                          available ? "bg-emerald-500" : "bg-muted-foreground"
+                                        )}
+                                      />
+                                      {available ? "Available" : "Unavailable"}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{room.floor}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">{room.notes || "—"}</p>
                                 </button>
                               )
                             })}

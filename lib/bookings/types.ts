@@ -1,5 +1,9 @@
+// 'in_process' means the key/access card has been handed over and the rental
+// period is active. Depending on context, the UI labels this status as:
+//  - "Collected" on the receptionist key-status flow (KEY_STATUS_LABELS)
+//  - "Active Reservation" / "In Process" on admin and user-facing booking lists
+// All of these refer to the same underlying status.
 export type BookingStatus =
-  | 'pending'
   | 'approved'
   | 'key_prepared'
   | 'ready_for_collection'
@@ -9,7 +13,6 @@ export type BookingStatus =
   | 'missing'
 
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
-  pending: 'Pending',
   approved: 'Approved',
   key_prepared: 'Key Prepared',
   ready_for_collection: 'Ready for Collection',

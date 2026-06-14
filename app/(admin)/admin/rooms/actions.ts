@@ -74,28 +74,13 @@ export async function updateRoomNotes(
   return { success: true }
 }
 
-export async function toggleRoomAvailability(roomId: string, isAvailable: boolean) {
+export async function setRoomStatus(roomId: string, status: 'active' | 'hidden') {
   const { supabase, isAdmin } = await requireAdmin()
   if (!isAdmin) return { error: 'Only admins can manage rooms.' }
 
   const { error } = await supabase
     .from('rooms')
-    .update({ is_available: isAvailable })
-    .eq('id', roomId)
-
-  if (error) return { error: error.message }
-
-  revalidatePath('/admin/rooms')
-  return { success: true }
-}
-
-export async function toggleRoomVisibility(roomId: string, isVisible: boolean) {
-  const { supabase, isAdmin } = await requireAdmin()
-  if (!isAdmin) return { error: 'Only admins can manage rooms.' }
-
-  const { error } = await supabase
-    .from('rooms')
-    .update({ is_visible: isVisible })
+    .update({ status })
     .eq('id', roomId)
 
   if (error) return { error: error.message }

@@ -57,7 +57,7 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
 
   const { supabase, userId } = ctx
 
-  const activeStatuses: BookingStatus[] = ['pending', 'approved', 'key_prepared', 'ready_for_collection', 'in_process']
+  const activeStatuses: BookingStatus[] = ['approved', 'key_prepared', 'ready_for_collection', 'in_process']
 
   const { data: ownActiveBookings } = await supabase
     .from('bookings')
@@ -72,11 +72,11 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
 
   const { data: room } = await supabase
     .from('rooms')
-    .select('is_available, is_visible')
+    .select('status')
     .eq('id', roomId)
     .single()
 
-  if (!room || !room.is_available || !room.is_visible) {
+  if (!room || room.status !== 'active') {
     return { error: 'This room is not available for booking.' }
   }
 
@@ -115,7 +115,12 @@ export async function createBooking(_prevState: BookingFormState, formData: Form
     status: 'approved',
   })
 
-  if (error) return { error: error.message }
+  if (error) {
+    if (error.code === '23P01') {
+      return { error: 'This room is already booked for the selected dates.' }
+    }
+    return { error: error.message }
+  }
 
   revalidatePath('/dashboard')
   revalidatePath('/admin/bookings')
@@ -156,14 +161,16 @@ export async function cancelBooking(bookingId: string) {
 
   const { supabase, userId } = ctx
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
     .eq('user_id', userId)
-    .in('status', ['pending', 'approved'])
+    .eq('status', 'approved')
+    .select('id')
 
   if (error) return { error: error.message }
+  if (!data || data.length === 0) return { error: 'This booking can no longer be cancelled.' }
 
   revalidatePath('/dashboard')
   revalidatePath('/admin/bookings')
@@ -183,9 +190,11 @@ type BookingEmailDetails = {
 async function setBookingStatus(
   bookingId: string,
   status: BookingStatus,
+  fromStatuses: BookingStatus[],
   allowedRoles: string[],
   paths: string[],
-  buildEmail?: (details: BookingEmailDetails) => { subject: string; html: string }
+  buildEmail?: (details: BookingEmailDetails) => { subject: string; html: string },
+  extraFields?: Record<string, unknown>
 ) {
   const ctx = await getProfileRole()
   if (!ctx) return { error: 'You must be logged in.' }
@@ -193,12 +202,15 @@ async function setBookingStatus(
 
   const { supabase } = ctx
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('bookings')
-    .update({ status })
+    .update({ status, ...extraFields })
     .eq('id', bookingId)
+    .in('status', fromStatuses)
+    .select('id')
 
   if (error) return { error: error.message }
+  if (!data || data.length === 0) return { error: 'Booking is no longer in a state that allows this action.' }
 
   for (const path of paths) revalidatePath(path)
 
@@ -232,13 +244,13 @@ async function setBookingStatus(
 }
 
 export async function markKeyPrepared(bookingId: string) {
-  return setBookingStatus(bookingId, 'key_prepared', ['admin', 'receptionist'], [
+  return setBookingStatus(bookingId, 'key_prepared', ['approved'], ['admin', 'receptionist'], [
     '/dashboard', '/admin', '/admin/bookings', '/receptionist', '/receptionist/ready-collection',
   ])
 }
 
 export async function markReadyForCollection(bookingId: string) {
-  return setBookingStatus(bookingId, 'ready_for_collection', ['admin', 'receptionist'], [
+  return setBookingStatus(bookingId, 'ready_for_collection', ['key_prepared'], ['admin', 'receptionist'], [
     '/dashboard', '/admin', '/admin/bookings', '/receptionist/ready-collection',
   ], (details) => ({
     subject: 'Key Ready for Collection - Iqra Room',
@@ -247,22 +259,28 @@ export async function markReadyForCollection(bookingId: string) {
 }
 
 export async function markCollected(bookingId: string) {
-  return setBookingStatus(bookingId, 'in_process', ['admin', 'receptionist'], [
+  return setBookingStatus(bookingId, 'in_process', ['ready_for_collection'], ['admin', 'receptionist'], [
     '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/ready-collection', '/receptionist/in-process',
   ])
 }
 
+export async function revertToInProcess(bookingId: string) {
+  return setBookingStatus(bookingId, 'in_process', ['completed'], ['admin', 'receptionist'], [
+    '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/ready-collection', '/receptionist/in-process', '/receptionist/key-history',
+  ], undefined, { reverted_at: new Date().toISOString() })
+}
+
 export async function markCompleted(bookingId: string) {
-  return setBookingStatus(bookingId, 'completed', ['admin', 'receptionist'], [
+  return setBookingStatus(bookingId, 'completed', ['in_process'], ['admin', 'receptionist'], [
     '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/in-process', '/receptionist/key-history',
   ], (details) => ({
     subject: 'Booking Completed - Iqra Room',
     html: bookingCompletedEmail(details),
-  }))
+  }), { reverted_at: null })
 }
 
 export async function markMissing(bookingId: string) {
-  return setBookingStatus(bookingId, 'missing', ['admin', 'receptionist'], [
+  return setBookingStatus(bookingId, 'missing', ['in_process', 'completed'], ['admin', 'receptionist'], [
     '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/in-process', '/receptionist/key-history',
   ], (details) => ({
     subject: 'Access Card Marked as Lost - Iqra Room',
@@ -271,9 +289,9 @@ export async function markMissing(bookingId: string) {
 }
 
 export async function markFound(bookingId: string) {
-  return setBookingStatus(bookingId, 'in_process', ['admin', 'receptionist'], [
+  return setBookingStatus(bookingId, 'in_process', ['missing'], ['admin', 'receptionist'], [
     '/booking/status', '/dashboard', '/admin/bookings', '/receptionist/in-process', '/receptionist/key-history',
-  ])
+  ], undefined, { reverted_at: new Date().toISOString() })
 }
 
 export async function chargePenalty(bookingId: string, amount: number = ACCESS_CARD_PENALTY) {
@@ -388,12 +406,17 @@ export async function forceCancelBooking(bookingId: string) {
     .eq('id', bookingId)
     .single()
 
-  const { error } = await supabase
+  const cancellableStatuses: BookingStatus[] = ['approved', 'key_prepared', 'ready_for_collection', 'in_process', 'missing']
+
+  const { data, error } = await supabase
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
+    .in('status', cancellableStatuses)
+    .select('id')
 
   if (error) return { error: error.message }
+  if (!data || data.length === 0) return { error: 'Booking is no longer active and cannot be cancelled.' }
 
   if (booking) {
     const profile = booking.profiles as unknown as { email: string; full_name: string } | null

@@ -15,7 +15,6 @@ import { formatBookingPeriod } from "@/lib/bookings/format"
 import type { AdminBooking } from "./bookings/all-bookings-table"
 
 const statusBadgeClassName: Record<BookingStatus, string | undefined> = {
-  pending: undefined,
   approved: KEY_STATUS_COLORS.approved,
   key_prepared: KEY_STATUS_COLORS.key_prepared,
   ready_for_collection: KEY_STATUS_COLORS.ready_for_collection,

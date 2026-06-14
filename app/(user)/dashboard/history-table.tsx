@@ -27,7 +27,6 @@ export type HistoryBooking = {
 }
 
 const statusClassName: Record<BookingStatus, string> = {
-  pending: "text-muted-foreground",
   approved: "text-blue-600",
   key_prepared: "text-cyan-600",
   ready_for_collection: "text-blue-600",

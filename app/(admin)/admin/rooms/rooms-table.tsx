@@ -26,8 +26,7 @@ type Room = {
   id: string
   room_number: string
   floor: string
-  is_available: boolean
-  is_visible: boolean
+  status: "active" | "hidden"
   notes: string | null
 }
 
@@ -46,10 +45,7 @@ export function RoomsTable({
 
   const filteredRooms = rooms.filter((room) => {
     if (floor !== "all" && room.floor !== floor) return false
-    if (availability === "available" && !room.is_available) return false
-    if (availability === "unavailable" && room.is_available) return false
-    if (availability === "visible" && !room.is_visible) return false
-    if (availability === "hidden" && room.is_visible) return false
+    if (availability !== "all" && room.status !== availability) return false
 
     const query = search.trim().toLowerCase()
     if (!query) return true
@@ -89,9 +85,7 @@ export function RoomsTable({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="unavailable">Unavailable</SelectItem>
-              <SelectItem value="visible">Visible</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
               <SelectItem value="hidden">Hidden</SelectItem>
             </SelectContent>
           </Select>
@@ -104,8 +98,7 @@ export function RoomsTable({
             <TableRow>
               <TableHead>Room Number</TableHead>
               <TableHead>Floor</TableHead>
-              <TableHead>Availability</TableHead>
-              <TableHead>Visibility</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Notes</TableHead>
               <TableHead className="w-12 text-right">Action</TableHead>
             </TableRow>
@@ -116,13 +109,8 @@ export function RoomsTable({
                 <TableCell>{room.room_number}</TableCell>
                 <TableCell>{room.floor}</TableCell>
                 <TableCell>
-                  <Badge variant={room.is_available ? "default" : "secondary"}>
-                    {room.is_available ? "Available" : "Unavailable"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={room.is_visible ? "default" : "secondary"}>
-                    {room.is_visible ? "Visible" : "Hidden"}
+                  <Badge variant={room.status === "active" ? "default" : "secondary"}>
+                    {room.status === "active" ? "Active" : "Hidden"}
                   </Badge>
                 </TableCell>
                 <TableCell className="max-w-64 truncate text-muted-foreground">
@@ -135,7 +123,7 @@ export function RoomsTable({
             ))}
             {filteredRooms.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No rooms found.
                 </TableCell>
               </TableRow>

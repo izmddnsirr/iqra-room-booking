@@ -106,36 +106,42 @@ export default async function AdminDashboardPage() {
     {
       label: "Key Pending to Prepare",
       value: pendingPrepCount,
+      description: "Awaiting key preparation",
       icon: <KeyRoundIcon className="size-5 text-amber-600" />,
       labelClassName: "text-amber-600",
     },
     {
       label: "Keys Ready",
       value: readyCount ?? 0,
+      description: "Awaiting collection at desk",
       icon: <KeyRoundIcon className="size-5 text-blue-600" />,
       labelClassName: "text-blue-600",
     },
     {
       label: "Overdue & Missing",
       value: overdueMissingData.length,
+      description: "Requires immediate attention",
       icon: <AlertTriangleIcon className="size-5 text-orange-600" />,
       labelClassName: "text-orange-600",
     },
     {
       label: "Total Bookings",
       value: bookingsCount ?? 0,
+      description: "All bookings on record",
       icon: <CalendarCheckIcon className="size-5 text-blue-600" />,
       labelClassName: "text-blue-600",
     },
     {
       label: "Total Rooms",
       value: roomsCount ?? 0,
+      description: "Rooms available for booking",
       icon: <DoorOpenIcon className="size-5 text-amber-600" />,
       labelClassName: "text-amber-600",
     },
     {
       label: "Total Users",
       value: usersCount ?? 0,
+      description: "Registered accounts",
       icon: <UsersIcon className="size-5 text-emerald-600" />,
       labelClassName: "text-emerald-600",
     },
@@ -173,8 +179,9 @@ export default async function AdminDashboardPage() {
                 </CardTitle>
                 {stat.icon}
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-1">
                 <span className="text-3xl font-semibold">{stat.value}</span>
+                <p className="text-sm text-muted-foreground">{stat.description}</p>
               </CardContent>
             </Card>
           ))}

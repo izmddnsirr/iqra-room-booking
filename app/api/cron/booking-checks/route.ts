@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     .select('id, end_date, profiles(email, full_name), rooms(room_number)')
     .eq('status', 'in_process')
     .lt('end_date', overdueCutoff)
+    .is('reverted_at', null)
 
   let markedMissing = 0
   for (const booking of (overdueBookings ?? []) as unknown as BookingRow[]) {

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Dashboard",
 };
 
-const ACTIVE_STATUSES: BookingStatus[] = ["pending", "approved", "key_prepared", "ready_for_collection", "in_process"];
+const ACTIVE_STATUSES: BookingStatus[] = ["approved", "key_prepared", "ready_for_collection", "in_process"];
 const HISTORY_STATUSES: BookingStatus[] = ["completed", "cancelled"];
 
 export default async function UserDashboardPage() {
@@ -35,8 +35,8 @@ export default async function UserDashboardPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("rooms")
-      .select("id, room_number, floor, is_available, notes")
-      .eq("is_visible", true)
+      .select("id, room_number, floor, status, notes")
+      .eq("status", "active")
       .order("sort_order", { ascending: true }),
     adminClient
       .from("bookings")

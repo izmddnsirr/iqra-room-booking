@@ -23,7 +23,7 @@ export default async function AdminRoomsPage() {
   const supabase = await createClient();
   const { data: rooms } = await supabase
     .from("rooms")
-    .select("id, room_number, floor, is_available, is_visible, notes")
+    .select("id, room_number, floor, status, notes")
     .order("sort_order", { ascending: true });
 
   return (

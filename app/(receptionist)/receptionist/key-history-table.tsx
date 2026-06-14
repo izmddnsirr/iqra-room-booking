@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { formatBookingDate, formatBookingPeriod } from "@/lib/bookings/format"
-import { chargePenalty, markCollected, markFound, markMissing } from "@/lib/bookings/actions"
+import { chargePenalty, markFound, markMissing, revertToInProcess } from "@/lib/bookings/actions"
 import { KEY_STATUS_COLORS, KEY_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
 import { ApplicantCell } from "./applicant-cell"
 import type { QueueBooking } from "./booking-queue-mapper"
@@ -114,7 +114,7 @@ function RowActionMenu({ booking }: { booking: QueueBooking }) {
                 Mark as Missing
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() => startTransition(async () => { await markCollected(booking.id) })}
+                onSelect={() => startTransition(async () => { await revertToInProcess(booking.id) })}
               >
                 Revert to In Process
               </DropdownMenuItem>
@@ -128,7 +128,6 @@ function RowActionMenu({ booking }: { booking: QueueBooking }) {
 }
 
 const historyStatusBadge: Record<BookingStatus, { label: string; className?: string; variant: "default" | "destructive" | "outline" }> = {
-  pending: { label: "Pending", variant: "outline" },
   approved: { label: "Approved", variant: "outline" },
   key_prepared: { label: "Key Prepared", variant: "outline", className: KEY_STATUS_COLORS.key_prepared },
   ready_for_collection: { label: "Ready for Pickup", variant: "outline" },

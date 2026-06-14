@@ -34,7 +34,6 @@ export type DashboardBooking = {
 }
 
 const statusClassName: Record<BookingStatus, string> = {
-  pending: "text-muted-foreground",
   approved: "text-amber-600",
   key_prepared: "text-amber-600",
   ready_for_collection: "text-blue-600",

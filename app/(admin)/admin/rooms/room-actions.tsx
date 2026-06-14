@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react"
 import { MoreHorizontalIcon } from "lucide-react"
 
-import { deleteRoom, toggleRoomAvailability, toggleRoomVisibility, updateRoomNotes } from "./actions"
+import { deleteRoom, setRoomStatus, updateRoomNotes } from "./actions"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,8 +35,7 @@ import { Textarea } from "@/components/ui/textarea"
 type Room = {
   id: string
   room_number: string
-  is_available: boolean
-  is_visible: boolean
+  status: "active" | "hidden"
   notes: string | null
 }
 
@@ -69,21 +68,11 @@ export function RoomActions({ room }: { room: Room }) {
             disabled={isPending}
             onClick={() =>
               startTransition(async () => {
-                await toggleRoomAvailability(room.id, !room.is_available)
+                await setRoomStatus(room.id, room.status === "active" ? "hidden" : "active")
               })
             }
           >
-            Mark as {room.is_available ? "unavailable" : "available"}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={isPending}
-            onClick={() =>
-              startTransition(async () => {
-                await toggleRoomVisibility(room.id, !room.is_visible)
-              })
-            }
-          >
-            {room.is_visible ? "Hide room" : "Unhide room"}
+            {room.status === "active" ? "Hide room" : "Unhide room"}
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setDeleteOpen(true)}>
             Delete room
