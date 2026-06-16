@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AlertTriangleIcon, CalendarCheckIcon, DoorOpenIcon, KeyRoundIcon, UsersIcon } from "lucide-react";
+import { AlertTriangleIcon, KeyRoundIcon } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -16,9 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/server";
 import type { BookingStatus } from "@/lib/bookings/types";
-import { RecentBookingsTable } from "./recent-bookings-table";
 import { PendingPrepTable } from "./pending-prep-table";
-import { OverdueMissingTable } from "./overdue-missing-table";
 import type { AdminBooking } from "./bookings/all-bookings-table";
 import { BOOKING_QUEUE_SELECT, mapQueueBookings } from "../../(receptionist)/receptionist/booking-queue-mapper";
 
@@ -30,39 +28,19 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
   const [
-    { count: bookingsCount },
-    { count: roomsCount },
-    { count: usersCount },
     { count: readyCount },
-    { data: recentBookings },
     { data: pendingPrepBookings },
     { data: inProcessBookings },
     { data: missingBookings },
   ] = await Promise.all([
-    supabase.from("bookings").select("*", { count: "exact", head: true }),
-    supabase.from("rooms").select("*", { count: "exact", head: true }),
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "ready_for_collection"),
-    supabase
-      .from("bookings")
-      .select("id, start_date, end_date, total_amount, status, profiles(full_name), rooms(room_number, floor)")
-      .order("created_at", { ascending: false })
-      .limit(5),
     supabase
       .from("bookings")
       .select("id, start_date, end_date, total_amount, status, profiles(full_name), rooms(room_number, floor)")
       .in("status", ["approved", "key_prepared"])
       .order("start_date", { ascending: true }),
-    supabase
-      .from("bookings")
-      .select(BOOKING_QUEUE_SELECT)
-      .eq("status", "in_process")
-      .order("end_date", { ascending: true }),
-    supabase
-      .from("bookings")
-      .select(BOOKING_QUEUE_SELECT)
-      .eq("status", "missing")
-      .order("end_date", { ascending: true }),
+    supabase.from("bookings").select(BOOKING_QUEUE_SELECT).eq("status", "in_process").order("end_date", { ascending: true }),
+    supabase.from("bookings").select(BOOKING_QUEUE_SELECT).eq("status", "missing").order("end_date", { ascending: true }),
   ]);
 
   const pendingPrepCount = (pendingPrepBookings ?? []).length;
@@ -90,7 +68,6 @@ export default async function AdminDashboardPage() {
     };
   };
 
-  const recentBookingsData: AdminBooking[] = (recentBookings ?? []).map(mapBooking);
   const pendingPrepData: AdminBooking[] = (pendingPrepBookings ?? []).map(mapBooking);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -100,7 +77,7 @@ export default async function AdminDashboardPage() {
   }));
   const overdue = inProcess.filter((booking) => booking.isOverdue);
   const missing = mapQueueBookings(missingBookings).map((booking) => ({ ...booking, isOverdue: false }));
-  const overdueMissingData = [...overdue, ...missing];
+  const overdueMissingCount = overdue.length + missing.length;
 
   const stats = [
     {
@@ -119,31 +96,10 @@ export default async function AdminDashboardPage() {
     },
     {
       label: "Overdue & Missing",
-      value: overdueMissingData.length,
+      value: overdueMissingCount,
       description: "Requires immediate attention",
       icon: <AlertTriangleIcon className="size-5 text-orange-600" />,
       labelClassName: "text-orange-600",
-    },
-    {
-      label: "Total Bookings",
-      value: bookingsCount ?? 0,
-      description: "All bookings on record",
-      icon: <CalendarCheckIcon className="size-5 text-blue-600" />,
-      labelClassName: "text-blue-600",
-    },
-    {
-      label: "Total Rooms",
-      value: roomsCount ?? 0,
-      description: "Rooms available for booking",
-      icon: <DoorOpenIcon className="size-5 text-amber-600" />,
-      labelClassName: "text-amber-600",
-    },
-    {
-      label: "Total Users",
-      value: usersCount ?? 0,
-      description: "Registered accounts",
-      icon: <UsersIcon className="size-5 text-emerald-600" />,
-      labelClassName: "text-emerald-600",
     },
   ];
 
@@ -187,8 +143,6 @@ export default async function AdminDashboardPage() {
           ))}
         </div>
         <PendingPrepTable bookings={pendingPrepData} />
-        <OverdueMissingTable bookings={overdueMissingData} />
-        <RecentBookingsTable bookings={recentBookingsData} />
       </div>
     </SidebarInset>
   );

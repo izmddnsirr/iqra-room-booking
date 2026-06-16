@@ -13,14 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { KEY_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
+import { KEY_STATUS_COLORS, KEY_STATUS_LABELS, type BookingStatus } from "@/lib/bookings/types"
+import { Badge } from "@/components/ui/badge"
 
-// From the user's perspective, "Key Prepared" is an internal receptionist
-// step - both `approved` and `key_prepared` show as "In Preparation".
-const USER_STATUS_LABELS: Record<BookingStatus, string> = {
-  ...KEY_STATUS_LABELS,
-  key_prepared: "In Preparation",
-}
 import { formatBookingPeriod } from "@/lib/bookings/format"
 import { BookRoomDialog, type ActiveBooking, type Room } from "./book-room-dialog"
 
@@ -31,16 +26,6 @@ export type DashboardBooking = {
   startDate: string
   endDate: string
   status: BookingStatus
-}
-
-const statusClassName: Record<BookingStatus, string> = {
-  approved: "text-amber-600",
-  key_prepared: "text-amber-600",
-  ready_for_collection: "text-blue-600",
-  in_process: "text-violet-600",
-  completed: "text-green-600",
-  cancelled: "text-muted-foreground",
-  missing: "text-red-600",
 }
 
 const columns: ColumnDef<DashboardBooking>[] = [
@@ -68,13 +53,15 @@ const columns: ColumnDef<DashboardBooking>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: () => <div className="text-right">Status</div>,
     size: 320,
     cell: ({ row }) => {
       const status = row.getValue("status") as BookingStatus
       return (
-        <div className={`font-medium ${statusClassName[status]}`}>
-          {USER_STATUS_LABELS[status]}
+        <div className="flex justify-end">
+          <Badge variant="outline" className={KEY_STATUS_COLORS[status]}>
+            {KEY_STATUS_LABELS[status]}
+          </Badge>
         </div>
       )
     },
@@ -95,7 +82,7 @@ export function BookingsTable({
 
   const filteredData = React.useMemo(() => {
     if (status === "all") return data
-    if (status === "approved") return data.filter((booking) => booking.status === "approved" || booking.status === "key_prepared")
+    if (status === "approved" || status === "key_prepared") return data.filter((booking) => booking.status === status)
     return data.filter((booking) => booking.status === status)
   }, [data, status])
 
@@ -120,6 +107,7 @@ export function BookingsTable({
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="approved">In Preparation</SelectItem>
+              <SelectItem value="key_prepared">Key Prepared</SelectItem>
               <SelectItem value="ready_for_collection">Ready for Pickup</SelectItem>
               <SelectItem value="in_process">Collected</SelectItem>
             </SelectContent>

@@ -23,8 +23,7 @@ const ACCESS_CARD_PENALTY = 50
 export function OverdueMissingTable({ bookings }: { bookings: (QueueBooking & { isOverdue: boolean })[] }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold">Overdue &amp; Missing</h2>
-      <div className="rounded-xl border">
+<div className="rounded-xl border">
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>

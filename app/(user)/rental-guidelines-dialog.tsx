@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -20,6 +21,7 @@ export function RentalGuidelinesDialog() {
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Iqra Room Rental Guidelines</DialogTitle>
+          <DialogDescription aria-describedby={undefined} />
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto rounded-xl border bg-muted/40 p-4 text-sm">
           <ol className="list-none space-y-2.5 pl-1">

@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -20,6 +21,7 @@ export function RoomRulesDialog() {
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Iqra Room Rules</DialogTitle>
+          <DialogDescription aria-describedby={undefined} />
         </DialogHeader>
         <div className="max-h-[70vh] space-y-6 overflow-y-auto rounded-xl border bg-muted/40 p-4 text-sm">
           {ROOM_RULES.map((section, sectionIndex) => {

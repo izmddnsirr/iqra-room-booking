@@ -61,7 +61,7 @@ export default async function AdminBookingsPage() {
       </header>
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div>
-          <h1 className="text-lg font-semibold">All Bookings</h1>
+          <h1 className="text-lg font-semibold">Bookings</h1>
           <p className="text-sm text-muted-foreground">View and manage all room bookings.</p>
         </div>
         <AllBookingsTable bookings={data} />

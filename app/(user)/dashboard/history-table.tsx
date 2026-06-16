@@ -71,12 +71,12 @@ const columns: ColumnDef<HistoryBooking>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: () => <div className="text-right">Status</div>,
     size: 160,
     cell: ({ row }) => {
       const status = row.getValue("status") as BookingStatus
       return (
-        <div className={`font-medium ${statusClassName[status]}`}>
+        <div className={`text-right font-medium ${statusClassName[status]}`}>
           {KEY_STATUS_LABELS[status]}
         </div>
       )

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -143,6 +144,7 @@ export function BookRoomDialog({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Book a Room</DialogTitle>
+          <DialogDescription aria-describedby={undefined} />
         </DialogHeader>
 
         <Stepper step={step} />

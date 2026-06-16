@@ -36,6 +36,9 @@ const data = {
       title: "All Bookings",
       url: "/admin/bookings",
       icon: <CalendarCheckIcon />,
+      items: [
+        { title: "Overdue & Missing", url: "/admin/bookings/overdue-missing" },
+      ],
     },
   ],
   adminNavManagement: [
